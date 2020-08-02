@@ -11,6 +11,7 @@
 #include "ble_bas.h"
 #include "ble_hrs.h"
 #include "ble_dis.h"
+#include "ble_acqs.h"
 #include "ble_conn_params.h"
 #include "boards.h"
 #include "sensorsim.h"
@@ -97,10 +98,11 @@ APP_TIMER_DEF(m_battery_timer_id);                        /**< Battery timer. */
 //APP_TIMER_DEF(m_rr_interval_timer_id);                    /**< RR interval timer. */                 /**< RR interval timer. */
 //APP_TIMER_DEF(m_sensor_contact_timer_id);                 /**< Sensor contact detected timer. */
 
-
-static ble_uuid_t m_adv_uuids[] = {{BLE_UUID_HEART_RATE_SERVICE, BLE_UUID_TYPE_BLE},
-                                   {BLE_UUID_BATTERY_SERVICE, BLE_UUID_TYPE_BLE},
-                                   {BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE}}; /**< Universally unique service identifiers. */
+//UUID Advertising table
+static ble_uuid_t m_adv_uuids[] = {
+		{BLE_ACQ_SERVICE, BLE_UUID_TYPE_VENDOR_BEGIN},
+		{BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE}
+};
 
 /**@brief Callback function for asserts in the SoftDevice.
  *
@@ -337,9 +339,13 @@ static void gap_params_init(void)
 static void services_init(void)
 {
     uint32_t       err_code;
-    //ble_hrs_init_t hrs_init;
+		
     ble_bas_init_t bas_init;
     ble_dis_init_t dis_init;
+		ble_acqs_t acqs_init;
+	
+		ble_acqs_init(&acqs_init);
+	
     //uint8_t        body_sensor_location;
 
     // Initialize Heart Rate Service.
@@ -760,7 +766,7 @@ static void advertising_init(void)
     memset(&advdata, 0, sizeof(advdata));
 
     advdata.name_type               = BLE_ADVDATA_FULL_NAME;
-    advdata.include_appearance      = true;
+    advdata.include_appearance      = false;
     advdata.flags                   = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
     advdata.uuids_complete.uuid_cnt = sizeof(m_adv_uuids) / sizeof(m_adv_uuids[0]);
     advdata.uuids_complete.p_uuids  = m_adv_uuids;

@@ -1813,6 +1813,16 @@
                 </FileArmAds>
               </FileOption>
             </File>
+            <File>
+              <FileName>ble_acqs.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\ble_acqs.c</FilePath>
+            </File>
+            <File>
+              <FileName>ble_acqs.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\ble_acqs.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -4941,6 +4951,16 @@
                   </Cads>
                 </FileArmAds>
               </FileOption>
+            </File>
+            <File>
+              <FileName>ble_acqs.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\ble_acqs.c</FilePath>
+            </File>
+            <File>
+              <FileName>ble_acqs.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\ble_acqs.h</FilePath>
             </File>
           </Files>
         </Group>
