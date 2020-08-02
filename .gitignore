@@ -14,6 +14,9 @@ components/toolchain/*
 components/sdk_validation.h
 components/boards/*
 
+JLinkLog.txt
+JLinkSettings.ini
+
 *.uvguix*
 
 !components/boards/custom_board.h
