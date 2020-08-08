@@ -8,12 +8,10 @@
 #include "ble_srv_common.h"
 #include "ble_advdata.h"
 #include "ble_advertising.h"
-#include "ble_bas.h"
 #include "ble_dis.h"
 #include "ble_acqs.h"
 #include "ble_conn_params.h"
 #include "boards.h"
-#include "sensorsim.h"
 #include "softdevice_handler.h"
 #include "app_timer.h"
 #include "bsp.h"
@@ -37,11 +35,6 @@
 #define APP_TIMER_PRESCALER              	0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE          	4                                           /**< Size of timer operation queues. */
 
-#define BATTERY_LEVEL_MEAS_INTERVAL      	APP_TIMER_TICKS(2000, APP_TIMER_PRESCALER)  /**< Battery level measurement interval (ticks). */
-#define MIN_BATTERY_LEVEL                	81                                          /**< Minimum simulated battery level. */
-#define MAX_BATTERY_LEVEL                	100                                         /**< Maximum simulated 7battery level. */
-#define BATTERY_LEVEL_INCREMENT          	1                                           /**< Increment between each simulated battery level measurement. */
-
 #define MIN_CONN_INTERVAL                	MSEC_TO_UNITS(400, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.4 seconds). */
 #define MAX_CONN_INTERVAL                	MSEC_TO_UNITS(650, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (0.65 second). */
 #define SLAVE_LATENCY                    	0                                           /**< Slave latency. */
@@ -51,31 +44,19 @@
 #define NEXT_CONN_PARAMS_UPDATE_DELAY    	APP_TIMER_TICKS(30000, APP_TIMER_PRESCALER) /**< Time between each call to sd_ble_gap_conn_param_update after the first call (30 seconds). */
 #define MAX_CONN_PARAMS_UPDATE_COUNT     	3                                           /**< Number of attempts before giving up the connection parameter negotiation. */
 
-#define SEC_PARAM_MITM                   	0                                           /**< Man In The Middle protection not required. */
-#define SEC_PARAM_LESC                   	0                                           /**< LE Secure Connections not enabled. */
-#define SEC_PARAM_KEYPRESS               	0                                           /**< Keypress notifications not enabled. */
-#define SEC_PARAM_IO_CAPABILITIES        	BLE_GAP_IO_CAPS_NONE                        /**< No I/O capabilities. */
-#define SEC_PARAM_OOB                    	0                                           /**< Out Of Band data not available. */
-#define SEC_PARAM_MIN_KEY_SIZE           	7                                           /**< Minimum encryption key size. */
-#define SEC_PARAM_MAX_KEY_SIZE           	16                                          /**< Maximum encryption key size. */
-
 #define DEAD_BEEF                        	0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
 #define APP_FEATURE_NOT_SUPPORTED					BLE_GATT_STATUS_ATTERR_APP_BEGIN + 2        /**< Reply when unsupported features are requested. */
 
-#define SINE_TIMER_INTERVAL 							APP_TIMER_TICKS(100, APP_TIMER_PRESCALER) // 1000 ms intervals
-#define COUNTER_TIMER_INTERVAL 						APP_TIMER_TICKS(1000, APP_TIMER_PRESCALER) // 1000 ms intervals
+#define SINE_TIMER_INTERVAL 							APP_TIMER_TICKS(100, APP_TIMER_PRESCALER) 	// 100 ms interval
+#define COUNTER_TIMER_INTERVAL 						APP_TIMER_TICKS(1000, APP_TIMER_PRESCALER) 	// 1000 ms interval
 
-static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID; /**< Handle of the current connection. */
-static ble_bas_t m_bas;                                   /**< Structure used to identify the battery service. */
-static ble_acqs_t m_acqs;
+static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID; 	//Connection Handle
+
+static ble_acqs_t m_acqs;																	//Aquisition Service Structure	
 
 static nrf_ble_gatt_t m_gatt;                             /**< Structure for gatt module*/
 
-static sensorsim_cfg_t   m_battery_sim_cfg;               /**< Battery Level sensor simulator configuration. */
-static sensorsim_state_t m_battery_sim_state;             /**< Battery Level sensor simulator state. */
-
-APP_TIMER_DEF(m_battery_timer_id);                        /**< Battery timer. */
 APP_TIMER_DEF(m_sine_timer_id);
 APP_TIMER_DEF(m_counter_timer_id);
 
@@ -105,36 +86,6 @@ void advertising_start(void){
 	APP_ERROR_CHECK(err_code);
 }
 
-/**@brief Function for performing battery measurement and updating the Battery Level characteristic
- *        in Battery Service.
- */
-static void battery_level_update(void){
-	
-	uint32_t err_code;
-	uint8_t  battery_level;
-
-	battery_level = (uint8_t)sensorsim_measure(&m_battery_sim_state, &m_battery_sim_cfg);
-
-	err_code = ble_bas_battery_level_update(&m_bas, battery_level);
-	if((err_code != NRF_SUCCESS) && (err_code != NRF_ERROR_INVALID_STATE) &&
-     (err_code != BLE_ERROR_NO_TX_PACKETS) && (err_code != BLE_ERROR_GATTS_SYS_ATTR_MISSING)){
-		APP_ERROR_HANDLER(err_code);
-	}
-}
-
-/**@brief Function for handling the Battery measurement timer timeout.
- *
- * @details This function will be called each time the battery level measurement timer expires.
- *
- * @param[in] p_context  Pointer used for passing some arbitrary information (context) from the
- *                       app_start_timer() call to the timeout handler.
- */
-static void battery_level_meas_timeout_handler(void* p_context){
-	
-	UNUSED_PARAMETER(p_context);
-	battery_level_update();
-}
-
 static void sine_timeout_handler(void* p_context){
 // OUR_JOB: Step 3.F, Update temperature and characteristic value.
 	float sine_value = 0.707;
@@ -161,10 +112,6 @@ static void timers_init(void){
 	APP_TIMER_INIT(APP_TIMER_PRESCALER, APP_TIMER_OP_QUEUE_SIZE, false);
 
 	// Create timers.
-	err_code = app_timer_create(&m_battery_timer_id,
-                              APP_TIMER_MODE_REPEATED,
-                              battery_level_meas_timeout_handler);
-  APP_ERROR_CHECK(err_code);
 	
 	err_code = app_timer_create(&m_sine_timer_id,
 															APP_TIMER_MODE_REPEATED,
@@ -219,27 +166,14 @@ static void gap_params_init(void){
 static void services_init(void){
 	
 	uint32_t       err_code;
-		
-	ble_bas_init_t bas_init;
+	
 	ble_dis_init_t dis_init;
 	
 	NRF_LOG_INFO("SERVICES INIT\r\n");
+	
+	// Initialize Aquisition Service
+	
 	ble_acqs_init(&m_acqs);
-
-	// Here the sec level for the Battery Service can be changed/increased.
-	BLE_GAP_CONN_SEC_MODE_SET_OPEN(&bas_init.battery_level_char_attr_md.cccd_write_perm);
-	BLE_GAP_CONN_SEC_MODE_SET_OPEN(&bas_init.battery_level_char_attr_md.read_perm);
-	BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&bas_init.battery_level_char_attr_md.write_perm);
-
-	BLE_GAP_CONN_SEC_MODE_SET_OPEN(&bas_init.battery_level_report_read_perm);
-
-	bas_init.evt_handler          = NULL;
-	bas_init.support_notification = true;
-	bas_init.p_report_ref         = NULL;
-	bas_init.initial_batt_level   = 100;
-
-	err_code = ble_bas_init(&m_bas, &bas_init);
-	APP_ERROR_CHECK(err_code);
 
 	// Initialize Device Information Service.
 	memset(&dis_init, 0, sizeof(dis_init));
@@ -253,28 +187,12 @@ static void services_init(void){
 	APP_ERROR_CHECK(err_code);
 }
 
-/**@brief Function for initializing the sensor simulators.
- */
-static void sensor_simulator_init(void){
-	
-	m_battery_sim_cfg.min          = MIN_BATTERY_LEVEL;
-	m_battery_sim_cfg.max          = MAX_BATTERY_LEVEL;
-	m_battery_sim_cfg.incr         = BATTERY_LEVEL_INCREMENT;
-	m_battery_sim_cfg.start_at_max = true;
-
-	sensorsim_init(&m_battery_sim_state, &m_battery_sim_cfg);
-}
-
 /**@brief Function for starting application timers.
  */
 static void application_timers_start(void){
 	
 	uint32_t err_code;
 
-	// Start application timers.
-	err_code = app_timer_start(m_battery_timer_id, BATTERY_LEVEL_MEAS_INTERVAL, NULL);
-	APP_ERROR_CHECK(err_code);
-	
 	err_code = app_timer_start(m_sine_timer_id, SINE_TIMER_INTERVAL, NULL);
 	APP_ERROR_CHECK(err_code);
 	
@@ -282,7 +200,6 @@ static void application_timers_start(void){
 	APP_ERROR_CHECK(err_code);
 	
 }
-
 
 /**@brief Function for handling the Connection Parameters Module.
  *
@@ -467,7 +384,6 @@ static void on_ble_evt(ble_evt_t * p_ble_evt){
 static void ble_evt_dispatch(ble_evt_t * p_ble_evt){
 	
 	ble_conn_state_on_ble_evt(p_ble_evt);
-	ble_bas_on_ble_evt(&m_bas, p_ble_evt);
 	ble_acqs_on_ble_evt(p_ble_evt, &m_acqs);
 	ble_conn_params_on_ble_evt(p_ble_evt);
 	bsp_btn_ble_on_ble_evt(p_ble_evt);
@@ -638,11 +554,10 @@ int main(void){
 	gap_params_init();
 	advertising_init();
 	services_init();
-	sensor_simulator_init();
 	conn_params_init();
 
 	// Start execution.
-	NRF_LOG_INFO("ASensor Start!\r\n");
+	NRF_LOG_INFO("Application initialized!\r\n");
 	application_timers_start();
 	advertising_start();
 
