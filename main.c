@@ -98,12 +98,6 @@ APP_TIMER_DEF(m_battery_timer_id);                        /**< Battery timer. */
 //APP_TIMER_DEF(m_rr_interval_timer_id);                    /**< RR interval timer. */                 /**< RR interval timer. */
 //APP_TIMER_DEF(m_sensor_contact_timer_id);                 /**< Sensor contact detected timer. */
 
-//UUID Advertising table
-static ble_uuid_t m_adv_uuids[] = {
-		{BLE_ACQ_SERVICE, BLE_UUID_TYPE_VENDOR_BEGIN},
-		{BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE}
-};
-
 /**@brief Callback function for asserts in the SoftDevice.
  *
  * @details This function will be called in case of an assert in the SoftDevice.
@@ -150,7 +144,6 @@ static void battery_level_update(void)
         APP_ERROR_HANDLER(err_code);
     }
 }
-
 
 /**@brief Function for handling the Battery measurement timer timeout.
  *
@@ -768,8 +761,8 @@ static void advertising_init(void)
     advdata.name_type               = BLE_ADVDATA_FULL_NAME;
     advdata.include_appearance      = false;
     advdata.flags                   = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
-    advdata.uuids_complete.uuid_cnt = sizeof(m_adv_uuids) / sizeof(m_adv_uuids[0]);
-    advdata.uuids_complete.p_uuids  = m_adv_uuids;
+    //advdata.uuids_complete.uuid_cnt = sizeof(m_adv_uuids) / sizeof(m_adv_uuids[0]);
+    //advdata.uuids_complete.p_uuids  = m_adv_uuids;
 
     memset(&options, 0, sizeof(options));
     options.ble_adv_fast_enabled  = true;
