@@ -28,45 +28,47 @@
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 
-#define IS_SRVC_CHANGED_CHARACT_PRESENT  1                                           /**< Include or not the service_changed characteristic. if not enabled, the server's database cannot be changed for the lifetime of the device*/
+#define IS_SRVC_CHANGED_CHARACT_PRESENT  	1                                           /**< Include or not the service_changed characteristic. if not enabled, the server's database cannot be changed for the lifetime of the device*/
 
-#define DEVICE_NAME                      "ACQ Beacon"                                /**< Name of device. Will be included in the advertising data. */
-#define MANUFACTURER_NAME                "NordicSemiconductor"                       /**< Manufacturer. Will be passed to Device Information Service. */
-#define APP_ADV_INTERVAL                 160                                         /**< The advertising interval (in units of 0.625 ms. This value corresponds to 100 ms). */
+#define DEVICE_NAME                      	"ACQ Beacon"                                /**< Name of device. Will be included in the advertising data. */
+#define MANUFACTURER_NAME                	"NordicSemiconductor"                       /**< Manufacturer. Will be passed to Device Information Service. */
+#define APP_ADV_INTERVAL                 	160                                         /**< The advertising interval (in units of 0.625 ms. This value corresponds to 100 ms). */
 
-#define APP_TIMER_PRESCALER              0                                           /**< Value of the RTC1 PRESCALER register. */
-#define APP_TIMER_OP_QUEUE_SIZE          4                                           /**< Size of timer operation queues. */
+#define APP_TIMER_PRESCALER              	0                                           /**< Value of the RTC1 PRESCALER register. */
+#define APP_TIMER_OP_QUEUE_SIZE          	4                                           /**< Size of timer operation queues. */
 
-#define BATTERY_LEVEL_MEAS_INTERVAL      APP_TIMER_TICKS(2000, APP_TIMER_PRESCALER)  /**< Battery level measurement interval (ticks). */
-#define MIN_BATTERY_LEVEL                81                                          /**< Minimum simulated battery level. */
-#define MAX_BATTERY_LEVEL                100                                         /**< Maximum simulated 7battery level. */
-#define BATTERY_LEVEL_INCREMENT          1                                           /**< Increment between each simulated battery level measurement. */
+#define BATTERY_LEVEL_MEAS_INTERVAL      	APP_TIMER_TICKS(2000, APP_TIMER_PRESCALER)  /**< Battery level measurement interval (ticks). */
+#define MIN_BATTERY_LEVEL                	81                                          /**< Minimum simulated battery level. */
+#define MAX_BATTERY_LEVEL                	100                                         /**< Maximum simulated 7battery level. */
+#define BATTERY_LEVEL_INCREMENT          	1                                           /**< Increment between each simulated battery level measurement. */
 
-#define MIN_CONN_INTERVAL                MSEC_TO_UNITS(400, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.4 seconds). */
-#define MAX_CONN_INTERVAL                MSEC_TO_UNITS(650, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (0.65 second). */
-#define SLAVE_LATENCY                    0                                           /**< Slave latency. */
-#define CONN_SUP_TIMEOUT                 MSEC_TO_UNITS(4000, UNIT_10_MS)             /**< Connection supervisory timeout (4 seconds). */
+#define MIN_CONN_INTERVAL                	MSEC_TO_UNITS(400, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.4 seconds). */
+#define MAX_CONN_INTERVAL                	MSEC_TO_UNITS(650, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (0.65 second). */
+#define SLAVE_LATENCY                    	0                                           /**< Slave latency. */
+#define CONN_SUP_TIMEOUT                 	MSEC_TO_UNITS(4000, UNIT_10_MS)             /**< Connection supervisory timeout (4 seconds). */
 
-#define FIRST_CONN_PARAMS_UPDATE_DELAY   APP_TIMER_TICKS(5000, APP_TIMER_PRESCALER)  /**< Time from initiating event (connect or start of notification) to first time sd_ble_gap_conn_param_update is called (5 seconds). */
-#define NEXT_CONN_PARAMS_UPDATE_DELAY    APP_TIMER_TICKS(30000, APP_TIMER_PRESCALER) /**< Time between each call to sd_ble_gap_conn_param_update after the first call (30 seconds). */
-#define MAX_CONN_PARAMS_UPDATE_COUNT     3                                           /**< Number of attempts before giving up the connection parameter negotiation. */
+#define FIRST_CONN_PARAMS_UPDATE_DELAY   	APP_TIMER_TICKS(5000, APP_TIMER_PRESCALER)  /**< Time from initiating event (connect or start of notification) to first time sd_ble_gap_conn_param_update is called (5 seconds). */
+#define NEXT_CONN_PARAMS_UPDATE_DELAY    	APP_TIMER_TICKS(30000, APP_TIMER_PRESCALER) /**< Time between each call to sd_ble_gap_conn_param_update after the first call (30 seconds). */
+#define MAX_CONN_PARAMS_UPDATE_COUNT     	3                                           /**< Number of attempts before giving up the connection parameter negotiation. */
 
-#define SEC_PARAM_BOND                   1                                           /**< Perform bonding. */
-#define SEC_PARAM_MITM                   0                                           /**< Man In The Middle protection not required. */
-#define SEC_PARAM_LESC                   0                                           /**< LE Secure Connections not enabled. */
-#define SEC_PARAM_KEYPRESS               0                                           /**< Keypress notifications not enabled. */
-#define SEC_PARAM_IO_CAPABILITIES        BLE_GAP_IO_CAPS_NONE                        /**< No I/O capabilities. */
-#define SEC_PARAM_OOB                    0                                           /**< Out Of Band data not available. */
-#define SEC_PARAM_MIN_KEY_SIZE           7                                           /**< Minimum encryption key size. */
-#define SEC_PARAM_MAX_KEY_SIZE           16                                          /**< Maximum encryption key size. */
+#define SEC_PARAM_MITM                   	0                                           /**< Man In The Middle protection not required. */
+#define SEC_PARAM_LESC                   	0                                           /**< LE Secure Connections not enabled. */
+#define SEC_PARAM_KEYPRESS               	0                                           /**< Keypress notifications not enabled. */
+#define SEC_PARAM_IO_CAPABILITIES        	BLE_GAP_IO_CAPS_NONE                        /**< No I/O capabilities. */
+#define SEC_PARAM_OOB                    	0                                           /**< Out Of Band data not available. */
+#define SEC_PARAM_MIN_KEY_SIZE           	7                                           /**< Minimum encryption key size. */
+#define SEC_PARAM_MAX_KEY_SIZE           	16                                          /**< Maximum encryption key size. */
 
-#define DEAD_BEEF                        0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
+#define DEAD_BEEF                        	0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
-#define APP_FEATURE_NOT_SUPPORTED        BLE_GATT_STATUS_ATTERR_APP_BEGIN + 2        /**< Reply when unsupported features are requested. */
+#define APP_FEATURE_NOT_SUPPORTED					BLE_GATT_STATUS_ATTERR_APP_BEGIN + 2        /**< Reply when unsupported features are requested. */
 
+#define SINE_TIMER_INTERVAL 							APP_TIMER_TICKS(100, APP_TIMER_PRESCALER) // 1000 ms intervals
+#define COUNTER_TIMER_INTERVAL 						APP_TIMER_TICKS(1000, APP_TIMER_PRESCALER) // 1000 ms intervals
 
-static uint16_t  m_conn_handle = BLE_CONN_HANDLE_INVALID; /**< Handle of the current connection. */
+static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID; /**< Handle of the current connection. */
 static ble_bas_t m_bas;                                   /**< Structure used to identify the battery service. */
+static ble_acqs_t m_acqs;
 
 static nrf_ble_gatt_t m_gatt;                             /**< Structure for gatt module*/
 
@@ -74,6 +76,8 @@ static sensorsim_cfg_t   m_battery_sim_cfg;               /**< Battery Level sen
 static sensorsim_state_t m_battery_sim_state;             /**< Battery Level sensor simulator state. */
 
 APP_TIMER_DEF(m_battery_timer_id);                        /**< Battery timer. */
+APP_TIMER_DEF(m_sine_timer_id);
+APP_TIMER_DEF(m_counter_timer_id);
 
 /**@brief Callback function for asserts in the SoftDevice.
  *
@@ -125,10 +129,24 @@ static void battery_level_update(void){
  * @param[in] p_context  Pointer used for passing some arbitrary information (context) from the
  *                       app_start_timer() call to the timeout handler.
  */
-static void battery_level_meas_timeout_handler(void * p_context){
+static void battery_level_meas_timeout_handler(void* p_context){
 	
 	UNUSED_PARAMETER(p_context);
 	battery_level_update();
+}
+
+static void sine_timeout_handler(void* p_context){
+// OUR_JOB: Step 3.F, Update temperature and characteristic value.
+	float sine_value = 0.707;
+	sine_characteristic_notify(&m_acqs, &sine_value);
+	//NRF_LOG_INFO("SINE_TIMEOUT\r\n");
+}
+
+static void counter_timeout_handler(void* p_context){
+// OUR_JOB: Step 3.F, Update temperature and characteristic value.
+	uint16_t counter_value = 0x1234;
+	counter_characteristic_notify(&m_acqs, &counter_value);
+	//NRF_LOG_INFO("COUNTER_TIMEOUT\r\n");
 }
 
 /**@brief Function for the Timer initialization.
@@ -138,7 +156,7 @@ static void battery_level_meas_timeout_handler(void * p_context){
 static void timers_init(void){
 	
 	uint32_t err_code;
-
+	
 	// Initialize timer module.
 	APP_TIMER_INIT(APP_TIMER_PRESCALER, APP_TIMER_OP_QUEUE_SIZE, false);
 
@@ -147,6 +165,17 @@ static void timers_init(void){
                               APP_TIMER_MODE_REPEATED,
                               battery_level_meas_timeout_handler);
   APP_ERROR_CHECK(err_code);
+	
+	err_code = app_timer_create(&m_sine_timer_id,
+															APP_TIMER_MODE_REPEATED,
+															sine_timeout_handler);
+	APP_ERROR_CHECK(err_code);
+	
+	err_code = app_timer_create(&m_counter_timer_id,
+															APP_TIMER_MODE_REPEATED,
+															counter_timeout_handler);
+	APP_ERROR_CHECK(err_code);
+	
 }
 
 
@@ -193,9 +222,9 @@ static void services_init(void){
 		
 	ble_bas_init_t bas_init;
 	ble_dis_init_t dis_init;
-	ble_acqs_t acqs_init;
 	
-	ble_acqs_init(&acqs_init);
+	NRF_LOG_INFO("SERVICES INIT\r\n");
+	ble_acqs_init(&m_acqs);
 
 	// Here the sec level for the Battery Service can be changed/increased.
 	BLE_GAP_CONN_SEC_MODE_SET_OPEN(&bas_init.battery_level_char_attr_md.cccd_write_perm);
@@ -236,7 +265,6 @@ static void sensor_simulator_init(void){
 	sensorsim_init(&m_battery_sim_state, &m_battery_sim_cfg);
 }
 
-
 /**@brief Function for starting application timers.
  */
 static void application_timers_start(void){
@@ -246,6 +274,13 @@ static void application_timers_start(void){
 	// Start application timers.
 	err_code = app_timer_start(m_battery_timer_id, BATTERY_LEVEL_MEAS_INTERVAL, NULL);
 	APP_ERROR_CHECK(err_code);
+	
+	err_code = app_timer_start(m_sine_timer_id, SINE_TIMER_INTERVAL, NULL);
+	APP_ERROR_CHECK(err_code);
+	
+	err_code = app_timer_start(m_counter_timer_id, COUNTER_TIMER_INTERVAL, NULL);
+	APP_ERROR_CHECK(err_code);
+	
 }
 
 
@@ -433,6 +468,7 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt){
 	
 	ble_conn_state_on_ble_evt(p_ble_evt);
 	ble_bas_on_ble_evt(&m_bas, p_ble_evt);
+	ble_acqs_on_ble_evt(p_ble_evt, &m_acqs);
 	ble_conn_params_on_ble_evt(p_ble_evt);
 	bsp_btn_ble_on_ble_evt(p_ble_evt);
 	on_ble_evt(p_ble_evt);
@@ -548,8 +584,6 @@ static void advertising_init(void){
 	advdata.name_type               = BLE_ADVDATA_FULL_NAME;
 	advdata.include_appearance      = false;
 	advdata.flags                   = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
-	//advdata.uuids_complete.uuid_cnt = sizeof(m_adv_uuids) / sizeof(m_adv_uuids[0]);
-	//advdata.uuids_complete.p_uuids  = m_adv_uuids;
 
 	memset(&options, 0, sizeof(options));
 	options.ble_adv_fast_enabled  = true;

@@ -12,10 +12,15 @@
 
 typedef struct {
 	uint16_t conn_handle;
-	uint16_t service_handle;     /**< Handle of ACQ Service (as provided by the BLE stack). */
-	ble_gatts_char_handles_t char_handles;
+	uint16_t service_handle;
+	ble_gatts_char_handles_t sine_handles;
+	ble_gatts_char_handles_t counter_handles;
 } ble_acqs_t;
 
 void ble_acqs_init(ble_acqs_t* p_acqs);
+void ble_acqs_on_ble_evt(ble_evt_t const* p_ble_evt, ble_acqs_t* p_acqs);
+void sine_characteristic_notify(ble_acqs_t* p_our_service, float* sine_value);
+void counter_characteristic_notify(ble_acqs_t* p_acqs, uint16_t* counter_value);
+
 
 #endif
