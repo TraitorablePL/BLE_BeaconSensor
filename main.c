@@ -303,6 +303,8 @@ static void conn_params_init(void){
  *
  * @note This function will not return.
  */
+
+/*
 static void sleep_mode_enter(void){
 	
 	uint32_t err_code = bsp_indication_set(BSP_INDICATE_IDLE);
@@ -317,6 +319,7 @@ static void sleep_mode_enter(void){
 	err_code = sd_power_system_off();
 	APP_ERROR_CHECK(err_code);
 }
+*/
 
 /**@brief Function for handling advertising events.
  *
