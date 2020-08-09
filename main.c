@@ -52,7 +52,7 @@
 
 #define APP_FEATURE_NOT_SUPPORTED					BLE_GATT_STATUS_ATTERR_APP_BEGIN + 2        /**< Reply when unsupported features are requested. */
 
-#define SINE_TIMER_INTERVAL 							APP_TIMER_TICKS(100, APP_TIMER_PRESCALER) 	// 100 ms interval
+#define SINE_TIMER_INTERVAL 							APP_TIMER_TICKS(2000, APP_TIMER_PRESCALER) 	// 2000 ms interval
 #define COUNTER_TIMER_INTERVAL 						APP_TIMER_TICKS(1000, APP_TIMER_PRESCALER) 	// 1000 ms interval
 
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID; 	//Connection Handle
@@ -87,17 +87,18 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name){
 void advertising_start(void){
 	
 	ret_code_t err_code;
-
 	err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
 	APP_ERROR_CHECK(err_code);
 }
 
 static void sine_timeout_handler(void* p_context){
-	float sine_value = 0.707;
+	
+	sine_value = 0.707;
 	sine_characteristic_notify(&m_acqs, &sine_value);
 }
 
 static void counter_timeout_handler(void* p_context){
+	
 	counter_characteristic_notify(&m_acqs, &counter_value);
 	counter_value++;
 }
@@ -544,7 +545,7 @@ int main(void){
 	uint32_t err_code;
 
 	// Initialize.
-	err_code = NRF_LOG_INIT(NULL);
+ 	err_code = NRF_LOG_INIT(NULL);
 	APP_ERROR_CHECK(err_code);
 
 	timers_init();
