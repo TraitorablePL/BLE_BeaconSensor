@@ -10,26 +10,48 @@
 
 #define PI 3.14159265
 
+static void on_write(ble_evt_t* p_ble_evt, ble_acqs_t* p_acqs){
+	ble_gatts_evt_write_t* p_evt_write = &p_ble_evt->evt.gatts_evt.params.write;
+
+	if((p_evt_write->handle == p_acqs->sine_handles.cccd_handle) && (p_evt_write->len == 2)){
+		
+		if(p_acqs->sine_notification == SINE_NOTIFICATION_DISABLED){
+			p_acqs->sine_notification = SINE_NOTIFICATION_ENABLED;
+		}
+		else{
+			p_acqs->sine_notification = SINE_NOTIFICATION_DISABLED;
+		}
+	}
+	else if((p_evt_write->handle == p_acqs->counter_handles.cccd_handle) && (p_evt_write->len == 2)){
+		if(p_acqs->counter_notification == COUNTER_NOTIFICATION_DISABLED){
+			p_acqs->counter_notification = COUNTER_NOTIFICATION_ENABLED;
+		}
+		else{
+			p_acqs->counter_notification = COUNTER_NOTIFICATION_DISABLED;
+		}
+	}
+}
+
 void ble_acqs_on_ble_evt(ble_evt_t const* p_ble_evt, ble_acqs_t* p_acqs){
-	
-	NRF_LOG_INFO("EVENT ACQS\r\n");
 	
 	switch (p_ble_evt->header.evt_id){
     case BLE_GAP_EVT_CONNECTED:
 			p_acqs->conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
-			NRF_LOG_INFO("CONNECTED\r\n");
+			NRF_LOG_INFO("ACQ Connected\r\n");
 			break;
 		
     case BLE_GAP_EVT_DISCONNECTED:
 			p_acqs->conn_handle = BLE_CONN_HANDLE_INVALID;
-			NRF_LOG_INFO("DISCONNECTED\r\n");
+			NRF_LOG_INFO("ACQ Disconnected\r\n");
 			break;
+		
+		case BLE_GATTS_EVT_WRITE:
+			on_write((ble_evt_t*)p_ble_evt, p_acqs);
+			NRF_LOG_INFO("ACQ Write\r\n");
 		
     default:
 			break;
 	}
-	
-	// OUR_JOB: Step 3.D Implement switch case handling BLE events related to our service. 
 }
 
 /*
@@ -100,8 +122,9 @@ static uint32_t sine_char_add(ble_acqs_t * p_acqs){
 }
 
 void sine_characteristic_notify(ble_acqs_t* p_acqs, float* sine_value){
-	// OUR_JOB: Step 3.E, Update characteristic value
-	if (p_acqs->conn_handle != BLE_CONN_HANDLE_INVALID){
+	
+	if ((p_acqs->conn_handle != BLE_CONN_HANDLE_INVALID) &&
+			(p_acqs->sine_notification == SINE_NOTIFICATION_ENABLED)){
 		
 		uint16_t len = 2;
 		ble_gatts_hvx_params_t hvx_params;
@@ -114,7 +137,6 @@ void sine_characteristic_notify(ble_acqs_t* p_acqs, float* sine_value){
 		hvx_params.p_data = (uint8_t*)sine_value;  
 
 		sd_ble_gatts_hvx(p_acqs->conn_handle, &hvx_params);
-		NRF_LOG_INFO("SINE NOTIFY SENT\r\n");
 	}
 }
 
@@ -175,18 +197,21 @@ static uint32_t counter_char_add(ble_acqs_t* p_acqs){
 }
 
 void counter_characteristic_notify(ble_acqs_t* p_acqs, uint16_t* counter_value){
-	// OUR_JOB: Step 3.E, Update characteristic value
-	if (p_acqs->conn_handle != BLE_CONN_HANDLE_INVALID){
+	
+	if ((p_acqs->conn_handle != BLE_CONN_HANDLE_INVALID) &&
+			(p_acqs->counter_notification == COUNTER_NOTIFICATION_ENABLED)){
 		
 		uint16_t len = 2;
 		ble_gatts_hvx_params_t hvx_params;
 		memset(&hvx_params, 0, sizeof(hvx_params));
-
+				
+		uint8_t value[2] = {(uint8_t)((*counter_value)>>8), (uint8_t)(*counter_value)};
+				
 		hvx_params.handle = p_acqs->counter_handles.value_handle;
 		hvx_params.type   = BLE_GATT_HVX_NOTIFICATION;
 		hvx_params.offset = 0;
 		hvx_params.p_len  = &len;
-		hvx_params.p_data = (uint8_t*)counter_value;  
+		hvx_params.p_data = value;
 
 		sd_ble_gatts_hvx(p_acqs->conn_handle, &hvx_params);
 	}
@@ -194,15 +219,14 @@ void counter_characteristic_notify(ble_acqs_t* p_acqs, uint16_t* counter_value){
 
 void ble_acqs_init(ble_acqs_t* p_acqs){
 	
-	uint32_t	err_code; // Variable to hold return codes from library and softdevice functions
-	
-	ble_uuid_t service_uuid; // What is the purpose of additional 8bit uuid
+	uint32_t	err_code;
+	ble_uuid_t service_uuid;
 	ble_uuid128_t base_uuid = BLE_ACQ_BASE_UUID;
 	service_uuid.uuid = BLE_ACQ_SERVICE;
+	
 	err_code = sd_ble_uuid_vs_add(&base_uuid, &service_uuid.type);
 	APP_ERROR_CHECK(err_code);
 	
-	//Add a service declaration to the Attribute Table
 	err_code = sd_ble_gatts_service_add(BLE_GATTS_SRVC_TYPE_PRIMARY,
 																			&service_uuid,
 																			&p_acqs->service_handle);
@@ -211,5 +235,7 @@ void ble_acqs_init(ble_acqs_t* p_acqs){
 	sine_char_add(p_acqs);
 	counter_char_add(p_acqs);
 	
+	p_acqs->sine_notification = SINE_NOTIFICATION_DISABLED;
+	p_acqs->counter_notification = COUNTER_NOTIFICATION_DISABLED;
 	p_acqs->conn_handle = BLE_CONN_HANDLE_INVALID;
 }

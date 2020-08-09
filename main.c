@@ -35,8 +35,12 @@
 #define APP_TIMER_PRESCALER              	0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE          	4                                           /**< Size of timer operation queues. */
 
-#define MIN_CONN_INTERVAL                	MSEC_TO_UNITS(400, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.4 seconds). */
-#define MAX_CONN_INTERVAL                	MSEC_TO_UNITS(650, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (0.65 second). */
+#define MIN_CONN_INTERVAL                	MSEC_TO_UNITS(80, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.4 seconds). */
+#define MAX_CONN_INTERVAL                	MSEC_TO_UNITS(120, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (0.65 second). */
+
+//#define MIN_CONN_INTERVAL                	MSEC_TO_UNITS(400, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.4 seconds). */
+//#define MAX_CONN_INTERVAL                	MSEC_TO_UNITS(650, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (0.65 second). */
+
 #define SLAVE_LATENCY                    	0                                           /**< Slave latency. */
 #define CONN_SUP_TIMEOUT                 	MSEC_TO_UNITS(4000, UNIT_10_MS)             /**< Connection supervisory timeout (4 seconds). */
 
@@ -54,6 +58,8 @@
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID; 	//Connection Handle
 
 static ble_acqs_t m_acqs;																	//Aquisition Service Structure	
+static uint16_t counter_value;
+static float sine_value;
 
 static nrf_ble_gatt_t m_gatt;                             /**< Structure for gatt module*/
 
@@ -87,17 +93,13 @@ void advertising_start(void){
 }
 
 static void sine_timeout_handler(void* p_context){
-// OUR_JOB: Step 3.F, Update temperature and characteristic value.
 	float sine_value = 0.707;
 	sine_characteristic_notify(&m_acqs, &sine_value);
-	//NRF_LOG_INFO("SINE_TIMEOUT\r\n");
 }
 
 static void counter_timeout_handler(void* p_context){
-// OUR_JOB: Step 3.F, Update temperature and characteristic value.
-	uint16_t counter_value = 0x1234;
 	counter_characteristic_notify(&m_acqs, &counter_value);
-	//NRF_LOG_INFO("COUNTER_TIMEOUT\r\n");
+	counter_value++;
 }
 
 /**@brief Function for the Timer initialization.
@@ -160,8 +162,6 @@ static void gap_params_init(void){
 }
 
 /**@brief Function for initializing services that will be used by the application.
- *
- * @details Initialize the Heart Rate, Battery and Device Information services.
  */
 static void services_init(void){
 	
