@@ -10,6 +10,19 @@
 
 #define PI 3.14159265
 
+static float sine_table[360];
+
+void sine_table_init(){
+	for (int i = 0; i < 360; i++) {
+		float rads = i * PI / 180;
+		sine_table[i] = sin(rads);
+	}
+}
+
+float sine_value_get(uint16_t degree){
+	return sine_table[degree%360];
+}
+
 static void on_write(ble_evt_t* p_ble_evt, ble_acqs_t* p_acqs){
 	ble_gatts_evt_write_t* p_evt_write = &p_ble_evt->evt.gatts_evt.params.write;
 
@@ -53,11 +66,6 @@ void ble_acqs_on_ble_evt(ble_evt_t const* p_ble_evt, ble_acqs_t* p_acqs){
 			break;
 	}
 }
-
-/*
-	float radians = degree*PI/180;
-
-*/
 
 /**@brief Function for adding our new characterstic to "Our service" that we initiated in the previous tutorial. 
  *

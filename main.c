@@ -35,8 +35,8 @@
 #define APP_TIMER_PRESCALER              	0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE          	4                                           /**< Size of timer operation queues. */
 
-#define MIN_CONN_INTERVAL                	MSEC_TO_UNITS(80, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.4 seconds). */
-#define MAX_CONN_INTERVAL                	MSEC_TO_UNITS(120, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (0.65 second). */
+#define MIN_CONN_INTERVAL                	MSEC_TO_UNITS(180, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.4 seconds). */
+#define MAX_CONN_INTERVAL                	MSEC_TO_UNITS(220, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (0.65 second). */
 
 //#define MIN_CONN_INTERVAL                	MSEC_TO_UNITS(400, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.4 seconds). */
 //#define MAX_CONN_INTERVAL                	MSEC_TO_UNITS(650, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (0.65 second). */
@@ -52,16 +52,18 @@
 
 #define APP_FEATURE_NOT_SUPPORTED					BLE_GATT_STATUS_ATTERR_APP_BEGIN + 2        /**< Reply when unsupported features are requested. */
 
-#define SINE_TIMER_INTERVAL 							APP_TIMER_TICKS(2000, APP_TIMER_PRESCALER) 	// 2000 ms interval
+#define SINE_TIMER_INTERVAL 							APP_TIMER_TICKS(500, APP_TIMER_PRESCALER) 	// 200 ms interval
 #define COUNTER_TIMER_INTERVAL 						APP_TIMER_TICKS(1000, APP_TIMER_PRESCALER) 	// 1000 ms interval
 
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID; 	//Connection Handle
 
 static ble_acqs_t m_acqs;																	//Aquisition Service Structure	
-static uint16_t counter_value;
-static float sine_value;
+static uint16_t counter;
+static uint16_t degree;
 
 static nrf_ble_gatt_t m_gatt;                             /**< Structure for gatt module*/
+
+
 
 APP_TIMER_DEF(m_sine_timer_id);
 APP_TIMER_DEF(m_counter_timer_id);
@@ -93,14 +95,15 @@ void advertising_start(void){
 
 static void sine_timeout_handler(void* p_context){
 	
-	sine_value = 0.707;
-	sine_characteristic_notify(&m_acqs, &sine_value);
+	float sine = sine_value_get(degree);
+	sine_characteristic_notify(&m_acqs, &sine);
+	degree++;
 }
 
 static void counter_timeout_handler(void* p_context){
 	
-	counter_characteristic_notify(&m_acqs, &counter_value);
-	counter_value++;
+	counter_characteristic_notify(&m_acqs, &counter);
+	counter++;
 }
 
 /**@brief Function for the Timer initialization.
@@ -554,6 +557,7 @@ int main(void){
 
 	gap_params_init();
 	advertising_init();
+	sine_table_init();
 	services_init();
 	conn_params_init();
 

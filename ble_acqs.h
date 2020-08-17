@@ -30,10 +30,13 @@ typedef struct {
 	counter_notification_t counter_notification;
 } ble_acqs_t;
 
+
 void ble_acqs_init(ble_acqs_t* p_acqs);
 void ble_acqs_on_ble_evt(ble_evt_t const* p_ble_evt, ble_acqs_t* p_acqs);
 void sine_characteristic_notify(ble_acqs_t* p_our_service, float* sine_value);
 void counter_characteristic_notify(ble_acqs_t* p_acqs, uint16_t* counter_value);
 
+void sine_table_init(void);
+float sine_value_get(uint16_t degree);
 
 #endif
