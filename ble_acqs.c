@@ -54,6 +54,8 @@ void ble_acqs_on_ble_evt(ble_evt_t const* p_ble_evt, ble_acqs_t* p_acqs){
 			break;
 		
     case BLE_GAP_EVT_DISCONNECTED:
+			p_acqs->counter_notification = COUNTER_NOTIFICATION_DISABLED;
+			p_acqs->sine_notification = SINE_NOTIFICATION_DISABLED;
 			p_acqs->conn_handle = BLE_CONN_HANDLE_INVALID;
 			NRF_LOG_INFO("ACQ Disconnected\r\n");
 			break;
