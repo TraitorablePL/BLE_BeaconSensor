@@ -3,6 +3,8 @@ external/*
 RTE/*
 
 components/ble/*
+components/ant/*
+components/nfc/*
 components/device/*
 components/drivers_ext/*
 components/drivers_nrf/*
@@ -13,6 +15,7 @@ components/softdevice/*
 components/toolchain/arm/*
 components/toolchain/cmsis/*
 components/toolchain/gcc/*
+components/toolchain/iar/*
 components/toolchain/system*
 components/sdk_validation.h
 components/boards/*
