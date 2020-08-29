@@ -13,6 +13,7 @@
 static float sine_table[360];
 
 void sine_table_init(){
+
 	for (int i = 0; i < 360; i++) {
 		float rads = i * PI / 180;
 		sine_table[i] = sin(rads);
@@ -20,10 +21,12 @@ void sine_table_init(){
 }
 
 float sine_value_get(uint16_t degree){
+
 	return sine_table[degree%360];
 }
 
 static void on_write(ble_evt_t* p_ble_evt, ble_acqs_t* p_acqs){
+
 	ble_gatts_evt_write_t* p_evt_write = &p_ble_evt->evt.gatts_evt.params.write;
 
 	if((p_evt_write->handle == p_acqs->sine_handles.cccd_handle) && (p_evt_write->len == 2)){
@@ -48,23 +51,24 @@ static void on_write(ble_evt_t* p_ble_evt, ble_acqs_t* p_acqs){
 void ble_acqs_on_ble_evt(ble_evt_t const* p_ble_evt, ble_acqs_t* p_acqs){
 	
 	switch (p_ble_evt->header.evt_id){
-    case BLE_GAP_EVT_CONNECTED:
+		case BLE_GAP_EVT_CONNECTED:
 			p_acqs->conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
 			NRF_LOG_INFO("ACQ Connected\r\n");
 			break;
-		
-    case BLE_GAP_EVT_DISCONNECTED:
+			
+		case BLE_GAP_EVT_DISCONNECTED:
 			p_acqs->counter_notification = COUNTER_NOTIFICATION_DISABLED;
 			p_acqs->sine_notification = SINE_NOTIFICATION_DISABLED;
 			p_acqs->conn_handle = BLE_CONN_HANDLE_INVALID;
 			NRF_LOG_INFO("ACQ Disconnected\r\n");
 			break;
-		
+			
 		case BLE_GATTS_EVT_WRITE:
 			on_write((ble_evt_t*)p_ble_evt, p_acqs);
 			NRF_LOG_INFO("ACQ Write\r\n");
-		
-    default:
+			break;
+			
+		default:
 			break;
 	}
 }
@@ -121,17 +125,17 @@ static uint32_t sine_char_add(ble_acqs_t * p_acqs){
 	attr_char_value.p_attr_md = &attr_md;
 
 	// OUR_JOB: Step 2.H, Set characteristic length in number of bytes
-	uint8_t value[4]            = {0x00,0x00,0x00,0x00};
-	attr_char_value.max_len     = 4;
-	attr_char_value.init_len    = 4;
-	attr_char_value.p_value     = value;
+	uint8_t value[4] = {0x00,0x00,0x00,0x00};
+	attr_char_value.max_len = 4;
+	attr_char_value.init_len = 4;
+	attr_char_value.p_value = value;
 
 	// OUR_JOB: Step 2.E, Add our new characteristic to the service
 	
-	err_code = sd_ble_gatts_characteristic_add(p_acqs->service_handle,
-																						 &char_md,
-																						 &attr_char_value,
-																						 &p_acqs->sine_handles);
+	err_code = sd_ble_gatts_characteristic_add(	p_acqs->service_handle,
+												&char_md,
+												&attr_char_value,
+												&p_acqs->sine_handles);
 	APP_ERROR_CHECK(err_code);
 
 	return NRF_SUCCESS;
@@ -140,16 +144,16 @@ static uint32_t sine_char_add(ble_acqs_t * p_acqs){
 void sine_characteristic_notify(ble_acqs_t* p_acqs, float* sine_value){
 	
 	if ((p_acqs->conn_handle != BLE_CONN_HANDLE_INVALID) &&
-			(p_acqs->sine_notification == SINE_NOTIFICATION_ENABLED)){
+		(p_acqs->sine_notification == SINE_NOTIFICATION_ENABLED)){
 		
 		uint16_t len = 4;
 		ble_gatts_hvx_params_t hvx_params;
 		memset(&hvx_params, 0, sizeof(hvx_params));
 
 		hvx_params.handle = p_acqs->sine_handles.value_handle;
-		hvx_params.type   = BLE_GATT_HVX_NOTIFICATION;
+		hvx_params.type = BLE_GATT_HVX_NOTIFICATION;
 		hvx_params.offset = 0;
-		hvx_params.p_len  = &len;
+		hvx_params.p_len = &len;
 		hvx_params.p_data = (uint8_t*)sine_value;  
 
 		sd_ble_gatts_hvx(p_acqs->conn_handle, &hvx_params);
@@ -203,16 +207,16 @@ static uint32_t counter_char_add(ble_acqs_t* p_acqs){
 
 	// OUR_JOB: Step 2.H, Set characteristic length in number of bytes
 	
-	uint8_t value[2]            = {0x00,0x00};
-	attr_char_value.max_len     = 2;
-	attr_char_value.init_len    = 2;
-	attr_char_value.p_value     = value;
+	uint8_t value[2] = {0x00,0x00};
+	attr_char_value.max_len = 2;
+	attr_char_value.init_len = 2;
+	attr_char_value.p_value = value;
 
 	// OUR_JOB: Step 2.E, Add our new characteristic to the service
-	err_code = sd_ble_gatts_characteristic_add(p_acqs->service_handle,
-																						 &char_md,
-																						 &attr_char_value,
-																						 &p_acqs->counter_handles);
+	err_code = sd_ble_gatts_characteristic_add(	p_acqs->service_handle,
+												&char_md,
+												&attr_char_value,
+												&p_acqs->counter_handles);
 	APP_ERROR_CHECK(err_code);
 
 	return NRF_SUCCESS;
@@ -221,16 +225,16 @@ static uint32_t counter_char_add(ble_acqs_t* p_acqs){
 void counter_characteristic_notify(ble_acqs_t* p_acqs, uint16_t* counter_value){
 	
 	if ((p_acqs->conn_handle != BLE_CONN_HANDLE_INVALID) &&
-			(p_acqs->counter_notification == COUNTER_NOTIFICATION_ENABLED)){
+		(p_acqs->counter_notification == COUNTER_NOTIFICATION_ENABLED)){
 		
 		uint16_t len = 2;
 		ble_gatts_hvx_params_t hvx_params;
 		memset(&hvx_params, 0, sizeof(hvx_params));
 				
 		hvx_params.handle = p_acqs->counter_handles.value_handle;
-		hvx_params.type   = BLE_GATT_HVX_NOTIFICATION;
+		hvx_params.type = BLE_GATT_HVX_NOTIFICATION;
 		hvx_params.offset = 0;
-		hvx_params.p_len  = &len;
+		hvx_params.p_len = &len;
 		hvx_params.p_data = (uint8_t*)counter_value;
 
 		sd_ble_gatts_hvx(p_acqs->conn_handle, &hvx_params);
@@ -239,7 +243,7 @@ void counter_characteristic_notify(ble_acqs_t* p_acqs, uint16_t* counter_value){
 
 void ble_acqs_init(ble_acqs_t* p_acqs){
 	
-	uint32_t	err_code;
+	uint32_t err_code;
 	ble_uuid_t service_uuid;
 	ble_uuid128_t base_uuid = BLE_ACQ_BASE_UUID;
 	service_uuid.uuid = BLE_ACQ_SERVICE;
@@ -248,8 +252,8 @@ void ble_acqs_init(ble_acqs_t* p_acqs){
 	APP_ERROR_CHECK(err_code);
 	
 	err_code = sd_ble_gatts_service_add(BLE_GATTS_SRVC_TYPE_PRIMARY,
-																			&service_uuid,
-																			&p_acqs->service_handle);
+										&service_uuid,
+										&p_acqs->service_handle);
 	APP_ERROR_CHECK(err_code);
 
 	sine_char_add(p_acqs);
