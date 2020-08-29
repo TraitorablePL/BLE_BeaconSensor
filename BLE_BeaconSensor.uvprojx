@@ -1080,6 +1080,56 @@
                 </FileArmAds>
               </FileOption>
             </File>
+            <File>
+              <FileName>id_manager.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\id_manager.c</FilePath>
+            </File>
+            <File>
+              <FileName>security_dispatcher.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\security_dispatcher.c</FilePath>
+            </File>
+            <File>
+              <FileName>peer_data.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\peer_data.c</FilePath>
+            </File>
+            <File>
+              <FileName>peer_data_storage.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\peer_data_storage.c</FilePath>
+            </File>
+            <File>
+              <FileName>peer_database.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\peer_database.c</FilePath>
+            </File>
+            <File>
+              <FileName>peer_id.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\peer_id.c</FilePath>
+            </File>
+            <File>
+              <FileName>peer_manager.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\peer_manager.c</FilePath>
+            </File>
+            <File>
+              <FileName>pm_buffer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\pm_buffer.c</FilePath>
+            </File>
+            <File>
+              <FileName>pm_mutex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\pm_mutex.c</FilePath>
+            </File>
+            <File>
+              <FileName>security_manager.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\security_manager.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -3490,6 +3540,56 @@
                   </Cads>
                 </FileArmAds>
               </FileOption>
+            </File>
+            <File>
+              <FileName>id_manager.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\id_manager.c</FilePath>
+            </File>
+            <File>
+              <FileName>security_dispatcher.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\security_dispatcher.c</FilePath>
+            </File>
+            <File>
+              <FileName>peer_data.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\peer_data.c</FilePath>
+            </File>
+            <File>
+              <FileName>peer_data_storage.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\peer_data_storage.c</FilePath>
+            </File>
+            <File>
+              <FileName>peer_database.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\peer_database.c</FilePath>
+            </File>
+            <File>
+              <FileName>peer_id.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\peer_id.c</FilePath>
+            </File>
+            <File>
+              <FileName>peer_manager.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\peer_manager.c</FilePath>
+            </File>
+            <File>
+              <FileName>pm_buffer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\pm_buffer.c</FilePath>
+            </File>
+            <File>
+              <FileName>pm_mutex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\pm_mutex.c</FilePath>
+            </File>
+            <File>
+              <FileName>security_manager.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BLE_BeaconSensor\components\ble\peer_manager\security_manager.c</FilePath>
             </File>
           </Files>
         </Group>

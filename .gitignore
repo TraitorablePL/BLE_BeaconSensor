@@ -14,9 +14,11 @@ components/toolchain/*
 components/sdk_validation.h
 components/boards/*
 
+!components/boards/custom_board.h
+!components/toolchain/gcc/Makefile.windows
+
 JLinkLog.txt
 JLinkSettings.ini
 
 *.uvguix*
 
-!components/boards/custom_board.h
