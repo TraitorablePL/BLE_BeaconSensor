@@ -1,4 +1,4 @@
-PROJECT_NAME     := ble_app_hrs_c_pca10056_s140
+PROJECT_NAME     := BLE_BeaconSensor_Client
 TARGETS          := nrf52840_xxaa
 OUTPUT_DIRECTORY := _build
 
@@ -11,9 +11,6 @@ SRC_FILES += \
   components/libraries/bsp/bsp.c \
   components/libraries/bsp/bsp_btn_ble.c \
   components/libraries/bsp/bsp_cli.c \
-  components/libraries/crypto/backend/nrf_hw/nrf_hw_backend_init.c \
-  components/libraries/crypto/backend/nrf_hw/nrf_hw_backend_rng.c \
-  components/libraries/crypto/backend/nrf_hw/nrf_hw_backend_rng_mbedtls.c \
   components/boards/boards.c \
   integration/nrfx/legacy/nrf_drv_clock.c \
   integration/nrfx/legacy/nrf_drv_power.c \
@@ -70,27 +67,10 @@ SRC_FILES += \
   components/libraries/log/src/nrf_log_default_backends.c \
   components/libraries/log/src/nrf_log_frontend.c \
   components/libraries/log/src/nrf_log_str_formatter.c \
-  components/libraries/crypto/nrf_crypto_aead.c \
-  components/libraries/crypto/nrf_crypto_aes.c \
-  components/libraries/crypto/nrf_crypto_aes_shared.c \
-  components/libraries/crypto/nrf_crypto_ecc.c \
-  components/libraries/crypto/nrf_crypto_ecdh.c \
-  components/libraries/crypto/nrf_crypto_ecdsa.c \
-  components/libraries/crypto/nrf_crypto_eddsa.c \
-  components/libraries/crypto/nrf_crypto_error.c \
-  components/libraries/crypto/nrf_crypto_hash.c \
-  components/libraries/crypto/nrf_crypto_hkdf.c \
-  components/libraries/crypto/nrf_crypto_hmac.c \
-  components/libraries/crypto/nrf_crypto_init.c \
-  components/libraries/crypto/nrf_crypto_rng.c \
-  components/libraries/crypto/nrf_crypto_shared.c \
   main.c \
   components/softdevice/common/nrf_sdh.c \
   components/softdevice/common/nrf_sdh_ble.c \
   components/softdevice/common/nrf_sdh_soc.c \
-  external/mbedtls/library/aes.c \
-  external/mbedtls/library/ctr_drbg.c \
-  external/mbedtls/library/platform_util.c \
   components/ble/peer_manager/auth_status_tracker.c \
   components/ble/common/ble_advdata.c \
   components/ble/common/ble_conn_state.c \
@@ -101,7 +81,6 @@ SRC_FILES += \
   components/ble/peer_manager/id_manager.c \
   components/ble/nrf_ble_gatt/nrf_ble_gatt.c \
   components/ble/nrf_ble_gq/nrf_ble_gq.c \
-  components/ble/peer_manager/nrf_ble_lesc.c \
   components/ble/nrf_ble_scan/nrf_ble_scan.c \
   components/ble/peer_manager/peer_data_storage.c \
   components/ble/peer_manager/peer_database.c \
@@ -111,38 +90,15 @@ SRC_FILES += \
   components/ble/peer_manager/pm_buffer.c \
   components/ble/peer_manager/security_dispatcher.c \
   components/ble/peer_manager/security_manager.c \
-  components/libraries/crypto/backend/cc310/cc310_backend_aes.c \
-  components/libraries/crypto/backend/cc310/cc310_backend_aes_aead.c \
-  components/libraries/crypto/backend/cc310/cc310_backend_chacha_poly_aead.c \
-  components/libraries/crypto/backend/cc310/cc310_backend_ecc.c \
-  components/libraries/crypto/backend/cc310/cc310_backend_ecdh.c \
-  components/libraries/crypto/backend/cc310/cc310_backend_ecdsa.c \
-  components/libraries/crypto/backend/cc310/cc310_backend_eddsa.c \
-  components/libraries/crypto/backend/cc310/cc310_backend_hash.c \
-  components/libraries/crypto/backend/cc310/cc310_backend_hmac.c \
-  components/libraries/crypto/backend/cc310/cc310_backend_init.c \
-  components/libraries/crypto/backend/cc310/cc310_backend_mutex.c \
-  components/libraries/crypto/backend/cc310/cc310_backend_rng.c \
-  components/libraries/crypto/backend/cc310/cc310_backend_shared.c \
   external/utf_converter/utf.c \
   components/ble/ble_services/ble_bas_c/ble_bas_c.c \
   components/ble/ble_services/ble_hrs_c/ble_hrs_c.c \
   external/segger_rtt/SEGGER_RTT.c \
   external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
   external/segger_rtt/SEGGER_RTT_printf.c \
-  components/libraries/crypto/backend/oberon/oberon_backend_chacha_poly_aead.c \
-  components/libraries/crypto/backend/oberon/oberon_backend_ecc.c \
-  components/libraries/crypto/backend/oberon/oberon_backend_ecdh.c \
-  components/libraries/crypto/backend/oberon/oberon_backend_ecdsa.c \
-  components/libraries/crypto/backend/oberon/oberon_backend_eddsa.c \
-  components/libraries/crypto/backend/oberon/oberon_backend_hash.c \
-  components/libraries/crypto/backend/oberon/oberon_backend_hmac.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \
-  components/nfc/ndef/generic/message \
-  components/nfc/t2t_lib \
-  components/nfc/t4t_parser/hl_detection_procedure \
   components/ble/ble_services/ble_ancs_c \
   components/ble/ble_services/ble_ias_c \
   components/libraries/pwm \
@@ -152,28 +108,21 @@ INC_FOLDERS += \
   components/libraries/usbd/class/msc \
   components/libraries/usbd/class/hid \
   modules/nrfx/hal \
-  components/nfc/ndef/conn_hand_parser/le_oob_rec_parser \
   components/libraries/log \
   components/ble/ble_services/ble_gls \
   components/libraries/fstorage \
-  components/nfc/ndef/text \
   components/libraries/mutex \
   components/libraries/gpiote \
   components/libraries/bootloader/ble_dfu \
-  components/nfc/ndef/connection_handover/common \
   components/boards \
-  components/nfc/ndef/generic/record \
-  components/nfc/t4t_parser/cc_file \
   components/ble/ble_advertising \
   external/utf_converter \
   components/ble/ble_services/ble_bas_c \
-  components/libraries/crypto/backend/micro_ecc \
   modules/nrfx/drivers/include \
   components/libraries/experimental_task_manager \
   components/ble/ble_services/ble_hrs_c \
   components/softdevice/s140/headers/nrf52 \
   components/nfc/ndef/connection_handover/le_oob_rec \
-  components/libraries/crypto/backend/oberon \
   components/libraries/queue \
   components/libraries/pwr_mgmt \
   components/ble/ble_dtm \
@@ -181,11 +130,8 @@ INC_FOLDERS += \
   components/ble/ble_services/ble_rscs_c \
   components/ble/common \
   components/ble/ble_services/ble_lls \
-  components/nfc/platform \
   components/libraries/bsp \
-  components/libraries/crypto/backend/nrf_hw \
   components/ble/ble_db_discovery \
-  components/nfc/ndef/connection_handover/ac_rec \
   components/ble/ble_services/ble_bas \
   components/libraries/mpu \
   components/libraries/experimental_section_vars \
@@ -194,14 +140,12 @@ INC_FOLDERS += \
   components/libraries/delay \
   components/libraries/usbd/class/cdc \
   components/libraries/memobj \
-  components/libraries/crypto/backend/cc310_bl \
   components/ble/ble_services/ble_nus_c \
   components/softdevice/common \
   components/ble/ble_services/ble_ias \
   components/libraries/usbd/class/hid/mouse \
   components/libraries/ecc \
   components/ble/nrf_ble_scan \
-  components/nfc/ndef/conn_hand_parser/ble_oob_advdata_parser \
   components/ble/ble_services/ble_dfu \
   external/fprintf \
   components/libraries/svc \
@@ -213,7 +157,6 @@ INC_FOLDERS += \
   components/ble/ble_services/ble_lbs \
   components/ble/ble_services/ble_hts \
   components/libraries/crc16 \
-  components/nfc/t4t_parser/apdu \
   components/libraries/util \
   config \
   components/libraries/csense_drv \
@@ -228,39 +171,23 @@ INC_FOLDERS += \
   components/softdevice/s140/headers \
   integration/nrfx \
   components/libraries/stack_info \
-  components/nfc/t4t_parser/tlv \
   components/libraries/sortlist \
   components/libraries/spi_mngr \
   components/libraries/led_softblink \
-  components/nfc/ndef/conn_hand_parser \
-  components/libraries/sdcard \
-  components/nfc/t4t_lib \
-  components/nfc/ndef/parser/record \
   modules/nrfx/mdk \
   components/ble/ble_services/ble_cts_c \
-  external/nrf_tls/mbedtls/nrf_crypto/config \
   components/ble/ble_services/ble_nus \
   components/libraries/twi_mngr \
   components/ble/ble_services/ble_hids \
   components/libraries/strerror \
   components/libraries/crc32 \
-  components/nfc/ndef/connection_handover/ble_oob_advdata \
-  components/nfc/t2t_parser \
-  components/nfc/ndef/connection_handover/ble_pair_msg \
-  components/libraries/crypto/backend/optiga \
   components/libraries/usbd/class/audio \
-  components/libraries/crypto/backend/nrf_sw \
   components/ble/peer_manager \
   components/libraries/mem_manager \
   components/libraries/ringbuf \
   components/ble/ble_services/ble_tps \
   components/ble/ble_services/ble_rscs \
-  components/nfc/ndef/parser/message \
-  components/libraries/crypto/backend/mbedtls \
-  components/libraries/crypto/backend/cc310 \
-  external/nrf_oberon \
   components/ble/ble_services/ble_dis \
-  components/nfc/ndef/uri \
   components/ble/nrf_ble_gatt \
   components/ble/nrf_ble_qwr \
   components/libraries/gfx \
@@ -269,29 +196,19 @@ INC_FOLDERS += \
   components/libraries/twi_sensor \
   integration/nrfx/legacy \
   components/libraries/usbd \
-  external/mbedtls/include \
-  components/nfc/ndef/connection_handover/ep_oob_rec \
   external/segger_rtt \
   components/libraries/atomic_fifo \
   components/ble/ble_services/ble_lbs_c \
-  components/nfc/ndef/connection_handover/ble_pair_lib \
-  components/libraries/crypto \
   components/ble/ble_racp \
   components/libraries/fds \
-  components/nfc/ndef/launchapp \
   components/libraries/atomic_flags \
   components/ble/nrf_ble_gq \
   components/ble/ble_services/ble_hrs \
-  components/libraries/crypto/backend/cifra \
-  components/nfc/ndef/connection_handover/hs_rec \
-  components/nfc/ndef/conn_hand_parser/ac_rec_parser \
   components/libraries/stack_guard \
   components/libraries/log/src \
 
 # Libraries common to all targets
 LIB_FILES += \
-  external/nrf_cc310/lib/cortex-m4/hard-float/libnrf_cc310_0.9.13.a \
-  external/nrf_oberon/lib/cortex-m4/hard-float/liboberon_3.0.5.a \
 
 # Optimization flags
 OPT = -O3 -g3
@@ -306,9 +223,7 @@ CFLAGS += -DBLE_STACK_SUPPORT_REQD
 CFLAGS += -DBOARD_PCA10059
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 CFLAGS += -DFLOAT_ABI_HARD
-CFLAGS += -DMBEDTLS_CONFIG_FILE=\"nrf_crypto_mbedtls_config.h\"
 CFLAGS += -DNRF52840_XXAA
-CFLAGS += -DNRF_CRYPTO_MAX_INSTANCE_COUNT=1
 CFLAGS += -DNRF_SD_BLE_API_VERSION=7
 CFLAGS += -DS140
 CFLAGS += -DSOFTDEVICE_PRESENT
@@ -334,7 +249,6 @@ ASMFLAGS += -DBOARD_PCA10059
 ASMFLAGS += -DCONFIG_GPIO_AS_PINRESET
 ASMFLAGS += -DFLOAT_ABI_HARD
 ASMFLAGS += -DNRF52840_XXAA
-ASMFLAGS += -DNRF_CRYPTO_MAX_INSTANCE_COUNT=1
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=7
 ASMFLAGS += -DS140
 ASMFLAGS += -DSOFTDEVICE_PRESENT

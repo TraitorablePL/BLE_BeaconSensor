@@ -1,4 +1,4 @@
-PROJECT_NAME     := BLE_BeaconSensor
+PROJECT_NAME     := BLE_BeaconSensor_Server
 TARGETS          := nrf51822_xxac
 OUTPUT_DIRECTORY := _build
 
