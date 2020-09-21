@@ -3,7 +3,7 @@ external/*
 RTE/*
 integration/*
 modules/*
-.vs/*
+.*
 
 components/802_15_4/*
 components/ant/*
