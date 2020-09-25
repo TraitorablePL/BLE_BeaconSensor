@@ -27,6 +27,7 @@ SRC_FILES += \
   modules/nrfx/drivers/src/nrfx_uarte.c \
   modules/nrfx/drivers/src/nrfx_usbd.c \
   components/libraries/uart/app_uart_fifo.c \
+  components/libraries/fifo/app_fifo.c \
   components/libraries/usbd/app_usbd.c \
   components/libraries/usbd/class/cdc/acm/app_usbd_cdc_acm.c \
   components/libraries/usbd/app_usbd_core.c \
@@ -196,6 +197,7 @@ INC_FOLDERS += \
   components/libraries/twi_sensor \
   integration/nrfx/legacy \
   components/libraries/usbd \
+  components/libraries/fifo \
   external/segger_rtt \
   components/libraries/atomic_fifo \
   components/ble/ble_services/ble_lbs_c \

@@ -22,6 +22,7 @@
 #include "app_usbd_string_desc.h"
 #include "app_usbd_cdc_acm.h"
 #include "app_usbd_serial_num.h"
+#include "app_fifo.h"
 
 #include "peer_manager.h"
 #include "peer_manager_handler.h"
@@ -68,7 +69,8 @@ static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst,
 #define CDC_ACM_DATA_EPIN       NRF_DRV_USBD_EPIN1
 #define CDC_ACM_DATA_EPOUT      NRF_DRV_USBD_EPOUT1
 
-#define READ_SIZE 1
+#define TX_BUF_SIZE             256
+#define READ_SIZE               1
 
 NRF_BLE_GQ_DEF(m_ble_gatt_queue,                                    /**< BLE GATT Queue instance. */
                NRF_SDH_BLE_CENTRAL_LINK_COUNT,
@@ -91,6 +93,11 @@ APP_USBD_CDC_ACM_GLOBAL_DEF(m_app_cdc_acm,
 
 static char m_rx_buffer[READ_SIZE];
 static char m_tx_buffer[NRF_DRV_USBD_EPSIZE];
+
+static char         m_tx_fifo_buffer[TX_BUF_SIZE];                  /**< TX buffer. */
+static app_fifo_t   m_tx_fifo;                                      /**< FIFO instance for TX USBD message */
+static bool         m_tx_buffer_free = true;                        /**< Flag to check if FIFO use needed. */
+static char         m_tx_char[1];
 
 static uint16_t m_conn_handle;                                      /**< Current connection handle. */
 static bool     m_memory_access_in_progress;                        /**< Flag to keep track of ongoing operations on persistent memory. */
@@ -211,7 +218,14 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context) {
 
         case BLE_GAP_EVT_CONNECTED:
         {
-            NRF_LOG_INFO("Connected.");
+            uint32_t size = sprintf(m_tx_buffer, "Connected to the device.\r\n");
+            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
+
+            if(m_tx_buffer_free){
+                app_fifo_get(&m_tx_fifo,m_tx_char);
+                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
+                m_tx_buffer_free = false;
+            }
 
             // Discover peer's services.
             err_code = ble_db_discovery_start(&m_db_disc, p_ble_evt->evt.gap_evt.conn_handle);
@@ -227,8 +241,14 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context) {
 
         case BLE_GAP_EVT_DISCONNECTED:
         {
-            NRF_LOG_INFO("Disconnected, reason 0x%x.",
-                         p_gap_evt->params.disconnected.reason);
+            uint32_t size = sprintf(m_tx_buffer, "Disconnected, reason 0x%x.\r\n", p_gap_evt->params.disconnected.reason);
+            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
+
+            if(m_tx_buffer_free){
+                app_fifo_get(&m_tx_fifo,m_tx_char);
+                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
+                m_tx_buffer_free = false;
+            }
 
             err_code = bsp_indication_set(BSP_INDICATE_IDLE);
             APP_ERROR_CHECK(err_code);
@@ -239,11 +259,17 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context) {
         } break;
 
         case BLE_GAP_EVT_TIMEOUT:
-        {
             if (p_gap_evt->params.timeout.src == BLE_GAP_TIMEOUT_SRC_CONN) {
-                NRF_LOG_INFO("Connection Request timed out.");
+                uint32_t size = sprintf(m_tx_buffer, "Connection Request timed out.\r\n");
+                app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
+
+                if(m_tx_buffer_free){
+                    app_fifo_get(&m_tx_fifo,m_tx_char);
+                    app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
+                    m_tx_buffer_free = false;
+                }
             }
-        } break;
+            break;
 
         case BLE_GAP_EVT_CONN_PARAM_UPDATE_REQUEST:
             // Accepting parameters requested by peer.
@@ -418,7 +444,14 @@ static void hrs_c_evt_handler(ble_hrs_c_t * p_hrs_c, ble_hrs_c_evt_t * p_hrs_c_e
 
         case BLE_HRS_C_EVT_DISCOVERY_COMPLETE:
         {
-            NRF_LOG_DEBUG("Heart rate service discovered.");
+            uint32_t size = sprintf(m_tx_buffer, "Heart rate service discovered.\r\n");
+            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
+
+            if(m_tx_buffer_free){
+                app_fifo_get(&m_tx_fifo,m_tx_char);
+                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
+                m_tx_buffer_free = false;
+            }
 
             err_code = ble_hrs_c_handles_assign(p_hrs_c,
                                                 p_hrs_c_evt->conn_handle,
@@ -439,9 +472,14 @@ static void hrs_c_evt_handler(ble_hrs_c_t * p_hrs_c, ble_hrs_c_evt_t * p_hrs_c_e
 
         case BLE_HRS_C_EVT_HRM_NOTIFICATION:
         {
-            NRF_LOG_INFO("Heart Rate = %d.", p_hrs_c_evt->params.hrm.hr_value);
-            size_t size = sprintf(m_tx_buffer, "Heart Rate = %d.\r\n", p_hrs_c_evt->params.hrm.hr_value);
-            app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_buffer, size);
+            uint32_t size = sprintf(m_tx_buffer, "Heart Rate = %d.\r\n", p_hrs_c_evt->params.hrm.hr_value);
+            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
+
+            if(m_tx_buffer_free){
+                app_fifo_get(&m_tx_fifo,m_tx_char);
+                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
+                m_tx_buffer_free = false;
+            }
 
             if (p_hrs_c_evt->params.hrm.rr_intervals_cnt != 0) {
                 uint32_t rr_avg = 0;
@@ -474,8 +512,14 @@ static void bas_c_evt_handler(ble_bas_c_t * p_bas_c, ble_bas_c_evt_t * p_bas_c_e
                                                 &p_bas_c_evt->params.bas_db);
             APP_ERROR_CHECK(err_code);
 
-            // Battery service discovered. Enable notification of Battery Level.
-            NRF_LOG_DEBUG("Battery Service discovered. Reading battery level.");
+            uint32_t size = sprintf(m_tx_buffer, "Battery Service discovered.\r\n");
+            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
+
+            if(m_tx_buffer_free) {
+                app_fifo_get(&m_tx_fifo,m_tx_char);
+                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
+                m_tx_buffer_free = false;
+            }
 
             err_code = ble_bas_c_bl_read(p_bas_c);
             APP_ERROR_CHECK(err_code);
@@ -486,10 +530,16 @@ static void bas_c_evt_handler(ble_bas_c_t * p_bas_c, ble_bas_c_evt_t * p_bas_c_e
         }   break;
 
         case BLE_BAS_C_EVT_BATT_NOTIFICATION:
-            {
-                size_t size = sprintf(m_tx_buffer, "Battery Level received %d %%.\r\n", p_bas_c_evt->params.battery_level);
-                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_buffer, size);
-            }   break;
+        {
+            uint32_t size = sprintf(m_tx_buffer, "Battery Level received %d %%.\r\n", p_bas_c_evt->params.battery_level);
+            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
+
+            if(m_tx_buffer_free){
+                app_fifo_get(&m_tx_fifo,m_tx_char);
+                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
+                m_tx_buffer_free = false;
+            }
+        }   break;
 
         case BLE_BAS_C_EVT_BATT_READ_RESP:
             NRF_LOG_INFO("Battery Level Read as %d %%.", p_bas_c_evt->params.battery_level);
@@ -756,6 +806,17 @@ static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst,
             break;
 
         case APP_USBD_CDC_ACM_USER_EVT_TX_DONE:
+
+            if(!m_tx_buffer_free){
+                uint32_t err = app_fifo_get(&m_tx_fifo, m_tx_char);
+                if(err == NRF_ERROR_NOT_FOUND) {
+                    m_tx_buffer_free = true;
+                }
+                else {
+                    app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
+                    m_tx_buffer_free = false;
+                }
+            }
             break;
 
         case APP_USBD_CDC_ACM_USER_EVT_RX_DONE:
@@ -838,6 +899,8 @@ int main(void) {
     app_usbd_class_inst_t const* class_cdc_acm = app_usbd_cdc_acm_class_inst_get(&m_app_cdc_acm);
     app_usbd_class_append(class_cdc_acm);
 
+    app_fifo_init(&m_tx_fifo, m_tx_fifo_buffer, TX_BUF_SIZE);
+    
     power_management_init();
     ble_stack_init();
     gatt_init();
