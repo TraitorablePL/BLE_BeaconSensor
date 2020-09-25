@@ -26,6 +26,7 @@
 
 #include "peer_manager.h"
 #include "peer_manager_handler.h"
+#include "ble_acqs_client.h"
 #include "ble_hrs_c.h"
 #include "ble_bas_c.h"
 #include "app_util.h"
@@ -72,14 +73,14 @@ static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst,
 #define TX_BUF_SIZE             256
 #define READ_SIZE               1
 
-NRF_BLE_GQ_DEF(m_ble_gatt_queue,                                    /**< BLE GATT Queue instance. */
-               NRF_SDH_BLE_CENTRAL_LINK_COUNT,
-               NRF_BLE_GQ_QUEUE_SIZE);
+//BLE_ACQS_DEF(m_acqs); 
 BLE_HRS_C_DEF(m_hrs_c);                                             /**< Structure used to identify the heart rate client module. */
-BLE_BAS_C_DEF(m_bas_c);                                             /**< Structure used to identify the Battery Service client module. */
 NRF_BLE_GATT_DEF(m_gatt);                                           /**< GATT module instance. */
 BLE_DB_DISCOVERY_DEF(m_db_disc);                                    /**< DB discovery module instance. */
 NRF_BLE_SCAN_DEF(m_scan);                                           /**< Scanning module instance. */
+NRF_BLE_GQ_DEF(m_ble_gatt_queue,                                    /**< BLE GATT Queue instance. */
+               NRF_SDH_BLE_CENTRAL_LINK_COUNT,
+               NRF_BLE_GQ_QUEUE_SIZE);
 
 APP_USBD_CDC_ACM_GLOBAL_DEF(m_app_cdc_acm,
                             cdc_acm_user_ev_handler,
@@ -102,7 +103,7 @@ static char         m_tx_char[1];
 static uint16_t m_conn_handle;                                      /**< Current connection handle. */
 static bool     m_memory_access_in_progress;                        /**< Flag to keep track of ongoing operations on persistent memory. */
 
-static char const m_target_periph_name[] = "Nordic_HRM";            /**< Target advertising name */
+static char const m_target_periph_name[] = "ACQ Beacon";            /**< Target advertising name */
 
 /**< Scan parameters requested for scanning and connection. */
 static ble_gap_scan_params_t const m_scan_param = {
@@ -156,8 +157,8 @@ static void service_error_handler(uint32_t nrf_error) {
  */
 static void db_disc_handler(ble_db_discovery_evt_t * p_evt) {
 
+    //ble_acqs_on_db_disc_evt(&m_acqs, p_evt);
     ble_hrs_on_db_disc_evt(&m_hrs_c, p_evt);
-    ble_bas_on_db_disc_evt(&m_bas_c, p_evt);
 }
 
 /**@brief Function for handling Peer Manager events.
@@ -495,43 +496,16 @@ static void hrs_c_evt_handler(ble_hrs_c_t * p_hrs_c, ble_hrs_c_evt_t * p_hrs_c_e
             break;
     }
 }
-
-
-/**@brief Battery level Collector Handler.
- */
-static void bas_c_evt_handler(ble_bas_c_t * p_bas_c, ble_bas_c_evt_t * p_bas_c_evt) {
+/*
+static void acqs_evt_handler(ble_acqs_t * p_acqs, ble_acqs_evt_t * p_acqs_evt) {
 
     ret_code_t err_code;
 
-    switch (p_bas_c_evt->evt_type) {
+    switch (p_acqs_evt->evt_type) {
 
-        case BLE_BAS_C_EVT_DISCOVERY_COMPLETE:
+        case BLE_HRS_C_EVT_DISCOVERY_COMPLETE:
         {
-            err_code = ble_bas_c_handles_assign(p_bas_c,
-                                                p_bas_c_evt->conn_handle,
-                                                &p_bas_c_evt->params.bas_db);
-            APP_ERROR_CHECK(err_code);
-
-            uint32_t size = sprintf(m_tx_buffer, "Battery Service discovered.\r\n");
-            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
-
-            if(m_tx_buffer_free) {
-                app_fifo_get(&m_tx_fifo,m_tx_char);
-                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
-                m_tx_buffer_free = false;
-            }
-
-            err_code = ble_bas_c_bl_read(p_bas_c);
-            APP_ERROR_CHECK(err_code);
-
-            NRF_LOG_DEBUG("Enabling Battery Level Notification.");
-            err_code = ble_bas_c_bl_notif_enable(p_bas_c);
-            APP_ERROR_CHECK(err_code);
-        }   break;
-
-        case BLE_BAS_C_EVT_BATT_NOTIFICATION:
-        {
-            uint32_t size = sprintf(m_tx_buffer, "Battery Level received %d %%.\r\n", p_bas_c_evt->params.battery_level);
+            uint32_t size = sprintf(m_tx_buffer, "Aquisition service discovered.\r\n");
             app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
 
             if(m_tx_buffer_free){
@@ -539,20 +513,28 @@ static void bas_c_evt_handler(ble_bas_c_t * p_bas_c, ble_bas_c_evt_t * p_bas_c_e
                 app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
                 m_tx_buffer_free = false;
             }
+
+            err_code = ble_acqs_handles_assign(p_acqs,
+                                               p_acqs_evt->conn_handle,
+                                               &p_acqs_evt->params.handles);
+            APP_ERROR_CHECK(err_code);
         }   break;
 
-        case BLE_BAS_C_EVT_BATT_READ_RESP:
-            NRF_LOG_INFO("Battery Level Read as %d %%.", p_bas_c_evt->params.battery_level);
+        case BLE_ACQS_EVT_DISCONNECTED:
+            NRF_LOG_INFO("Disconnected.");
+            scan_start();
             break;
 
         default:
             break;
     }
 }
+*/
 
 /**
  * @brief Heart rate collector initialization.
  */
+
 static void hrs_c_init(void) {
 
     ble_hrs_c_init_t hrs_c_init_obj;
@@ -566,19 +548,21 @@ static void hrs_c_init(void) {
 }
 
 /**
- * @brief Battery level collector initialization.
+ * @brief Aquisition client initialization.
  */
-static void bas_c_init(void) {
+/*
+static void acqs_init(void) {
 
-    ble_bas_c_init_t bas_c_init_obj;
+    ble_acqs_init_t acqs_init_obj;
 
-    bas_c_init_obj.evt_handler   = bas_c_evt_handler;
-    bas_c_init_obj.error_handler = service_error_handler;
-    bas_c_init_obj.p_gatt_queue  = &m_ble_gatt_queue;
+    acqs_init_obj.evt_handler   = acqs_evt_handler;
+    acqs_init_obj.error_handler = service_error_handler;
+    acqs_init_obj.p_gatt_queue  = &m_ble_gatt_queue;
 
-    ret_code_t err_code = ble_bas_c_init(&m_bas_c, &bas_c_init_obj);
+    ret_code_t err_code = ble_acqs_init(&m_acqs, &acqs_init_obj);
     APP_ERROR_CHECK(err_code);
 }
+*/
 
 /**
  * @brief Database discovery collector initialization.
@@ -907,7 +891,7 @@ int main(void) {
     peer_manager_init();
     db_discovery_init();
     hrs_c_init();
-    bas_c_init();
+    //acqs_init();
     scan_init();
 
     if (USBD_POWER_DETECTION) {

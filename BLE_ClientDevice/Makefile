@@ -69,6 +69,7 @@ SRC_FILES += \
   components/libraries/log/src/nrf_log_frontend.c \
   components/libraries/log/src/nrf_log_str_formatter.c \
   main.c \
+  ble_acqs_client.c \
   components/softdevice/common/nrf_sdh.c \
   components/softdevice/common/nrf_sdh_ble.c \
   components/softdevice/common/nrf_sdh_soc.c \
