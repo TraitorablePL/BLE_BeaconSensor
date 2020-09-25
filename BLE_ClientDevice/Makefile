@@ -1,45 +1,33 @@
 PROJECT_NAME     := BLE_BeaconSensor_Client
-TARGETS          := nrf52840_xxaa
+TARGETS          := nrf52833_xxaa
 OUTPUT_DIRECTORY := _build
 
-$(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
-  LINKER_SCRIPT  := nrf51840_xxaa.ld
+$(OUTPUT_DIRECTORY)/nrf52833_xxaa.out: \
+  LINKER_SCRIPT  := nrf52833_xxaa.ld
 
 # Source files common to all targets
 SRC_FILES += \
-  modules/nrfx/mdk/gcc_startup_nrf52840.S \
-  components/libraries/bsp/bsp.c \
-  components/libraries/bsp/bsp_btn_ble.c \
-  components/libraries/bsp/bsp_cli.c \
-  components/boards/boards.c \
-  integration/nrfx/legacy/nrf_drv_clock.c \
-  integration/nrfx/legacy/nrf_drv_power.c \
-  integration/nrfx/legacy/nrf_drv_rng.c \
-  integration/nrfx/legacy/nrf_drv_uart.c \
-  modules/nrfx/soc/nrfx_atomic.c \
-  modules/nrfx/drivers/src/nrfx_clock.c \
-  modules/nrfx/drivers/src/nrfx_gpiote.c \
-  modules/nrfx/drivers/src/nrfx_power.c \
-  modules/nrfx/drivers/src/prs/nrfx_prs.c \
-  modules/nrfx/drivers/src/nrfx_rng.c \
-  modules/nrfx/drivers/src/nrfx_systick.c \
-  modules/nrfx/drivers/src/nrfx_uart.c \
-  modules/nrfx/drivers/src/nrfx_uarte.c \
+  modules/nrfx/mdk/gcc_startup_nrf52833.S \
+  components/libraries/log/src/nrf_log_backend_rtt.c \
+  components/libraries/log/src/nrf_log_backend_serial.c \
+  components/libraries/log/src/nrf_log_backend_uart.c \
+  components/libraries/log/src/nrf_log_default_backends.c \
+  components/libraries/log/src/nrf_log_frontend.c \
+  components/libraries/log/src/nrf_log_str_formatter.c \
   modules/nrfx/drivers/src/nrfx_usbd.c \
-  components/libraries/uart/app_uart_fifo.c \
-  components/libraries/fifo/app_fifo.c \
   components/libraries/usbd/app_usbd.c \
   components/libraries/usbd/class/cdc/acm/app_usbd_cdc_acm.c \
   components/libraries/usbd/app_usbd_core.c \
   components/libraries/usbd/app_usbd_serial_num.c \
   components/libraries/usbd/app_usbd_string_desc.c \
-  modules/nrfx/mdk/system_nrf52840.c \
   components/libraries/button/app_button.c \
   components/libraries/util/app_error.c \
   components/libraries/util/app_error_handler_gcc.c \
   components/libraries/util/app_error_weak.c \
+  components/libraries/fifo/app_fifo.c \
   components/libraries/scheduler/app_scheduler.c \
   components/libraries/timer/app_timer2.c \
+  components/libraries/uart/app_uart_fifo.c \
   components/libraries/util/app_util_platform.c \
   components/libraries/crc16/crc16.c \
   components/libraries/timer/drv_rtc.c \
@@ -62,17 +50,29 @@ SRC_FILES += \
   components/libraries/experimental_section_vars/nrf_section_iter.c \
   components/libraries/sortlist/nrf_sortlist.c \
   components/libraries/strerror/nrf_strerror.c \
-  components/libraries/log/src/nrf_log_backend_rtt.c \
-  components/libraries/log/src/nrf_log_backend_serial.c \
-  components/libraries/log/src/nrf_log_backend_uart.c \
-  components/libraries/log/src/nrf_log_default_backends.c \
-  components/libraries/log/src/nrf_log_frontend.c \
-  components/libraries/log/src/nrf_log_str_formatter.c \
+  modules/nrfx/mdk/system_nrf52833.c \
+  components/boards/boards.c \
+  integration/nrfx/legacy/nrf_drv_clock.c \
+  integration/nrfx/legacy/nrf_drv_power.c \
+  integration/nrfx/legacy/nrf_drv_rng.c \
+  integration/nrfx/legacy/nrf_drv_uart.c \
+  modules/nrfx/soc/nrfx_atomic.c \
+  modules/nrfx/drivers/src/nrfx_clock.c \
+  modules/nrfx/drivers/src/nrfx_gpiote.c \
+  modules/nrfx/drivers/src/nrfx_power.c \
+  modules/nrfx/drivers/src/prs/nrfx_prs.c \
+  modules/nrfx/drivers/src/nrfx_rng.c \
+  modules/nrfx/drivers/src/nrfx_systick.c \
+  modules/nrfx/drivers/src/nrfx_uart.c \
+  modules/nrfx/drivers/src/nrfx_uarte.c \
+  components/libraries/bsp/bsp.c \
+  components/libraries/bsp/bsp_btn_ble.c \
+  components/libraries/bsp/bsp_cli.c \
   main.c \
+  external/segger_rtt/SEGGER_RTT.c \
+  external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
+  external/segger_rtt/SEGGER_RTT_printf.c \
   ble_acqs_client.c \
-  components/softdevice/common/nrf_sdh.c \
-  components/softdevice/common/nrf_sdh_ble.c \
-  components/softdevice/common/nrf_sdh_soc.c \
   components/ble/peer_manager/auth_status_tracker.c \
   components/ble/common/ble_advdata.c \
   components/ble/common/ble_conn_state.c \
@@ -93,18 +93,18 @@ SRC_FILES += \
   components/ble/peer_manager/security_dispatcher.c \
   components/ble/peer_manager/security_manager.c \
   external/utf_converter/utf.c \
+  components/softdevice/common/nrf_sdh.c \
+  components/softdevice/common/nrf_sdh_ble.c \
+  components/softdevice/common/nrf_sdh_soc.c \
   components/ble/ble_services/ble_bas_c/ble_bas_c.c \
   components/ble/ble_services/ble_hrs_c/ble_hrs_c.c \
-  external/segger_rtt/SEGGER_RTT.c \
-  external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
-  external/segger_rtt/SEGGER_RTT_printf.c \
+  
 
 # Include folders common to all targets
 INC_FOLDERS += \
   components/ble/ble_services/ble_ancs_c \
   components/ble/ble_services/ble_ias_c \
   components/libraries/pwm \
-  external/nrf_oberon/include \
   components/libraries/usbd/class/cdc/acm \
   components/libraries/usbd/class/hid/generic \
   components/libraries/usbd/class/msc \
@@ -223,10 +223,10 @@ CFLAGS += $(OPT)
 CFLAGS += -DAPP_TIMER_V2
 CFLAGS += -DAPP_TIMER_V2_RTC1_ENABLED
 CFLAGS += -DBLE_STACK_SUPPORT_REQD
-CFLAGS += -DBOARD_PCA10059
+CFLAGS += -DBOARD_PCA10100
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 CFLAGS += -DFLOAT_ABI_HARD
-CFLAGS += -DNRF52840_XXAA
+CFLAGS += -DNRF52833_XXAA
 CFLAGS += -DNRF_SD_BLE_API_VERSION=7
 CFLAGS += -DS140
 CFLAGS += -DSOFTDEVICE_PRESENT
@@ -248,10 +248,10 @@ ASMFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 ASMFLAGS += -DAPP_TIMER_V2
 ASMFLAGS += -DAPP_TIMER_V2_RTC1_ENABLED
 ASMFLAGS += -DBLE_STACK_SUPPORT_REQD
-ASMFLAGS += -DBOARD_PCA10059
+ASMFLAGS += -DBOARD_PCA10100
 ASMFLAGS += -DCONFIG_GPIO_AS_PINRESET
 ASMFLAGS += -DFLOAT_ABI_HARD
-ASMFLAGS += -DNRF52840_XXAA
+ASMFLAGS += -DNRF52833_XXAA
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=7
 ASMFLAGS += -DS140
 ASMFLAGS += -DSOFTDEVICE_PRESENT
@@ -266,10 +266,10 @@ LDFLAGS += -Wl,--gc-sections
 # use newlib in nano version
 LDFLAGS += --specs=nano.specs
 
-nrf52840_xxaa: CFLAGS += -D__HEAP_SIZE=8192
-nrf52840_xxaa: CFLAGS += -D__STACK_SIZE=8192
-nrf52840_xxaa: ASMFLAGS += -D__HEAP_SIZE=8192
-nrf52840_xxaa: ASMFLAGS += -D__STACK_SIZE=8192
+nrf52833_xxaa: CFLAGS += -D__HEAP_SIZE=2048
+nrf52833_xxaa: CFLAGS += -D__STACK_SIZE=2048
+nrf52833_xxaa: ASMFLAGS += -D__HEAP_SIZE=2048
+nrf52833_xxaa: ASMFLAGS += -D__STACK_SIZE=2048
 
 # Add standard libraries at the very end of the linker input, after all objects
 # that may need symbols provided by these libraries.
@@ -279,12 +279,12 @@ LIB_FILES += -lc -lnosys -lm
 .PHONY: default help
 
 # Default target - first one defined
-default: nrf52840_xxaa
+default: nrf52833_xxaa
 
 # Print all targets that can be built
 help:
 	@echo following targets are available:
-	@echo		nrf52840_xxaa
+	@echo		nrf52833_xxaa
 	@echo		flash_softdevice
 	@echo		sdk_config - starting external tool for editing sdk_config.h
 	@echo		flash      - flashing binary
@@ -300,20 +300,20 @@ $(foreach target, $(TARGETS), $(call define_target, $(target)))
 
 # Flash the program
 flash: default
-	@echo Flashing: $(OUTPUT_DIRECTORY)/nrf52840_xxaa.hex
-	nrfjprog -f nrf52 --program $(OUTPUT_DIRECTORY)/nrf52840_xxaa.hex --sectorerase
+	@echo Flashing: $(OUTPUT_DIRECTORY)/nrf52833_xxaa.hex
+	nrfjprog -f nrf52 --program $(OUTPUT_DIRECTORY)/nrf52833_xxaa.hex --sectorerase
 	nrfjprog -f nrf52 --reset
 
 # Flash softdevice
 flash_softdevice:
 	@echo Flashing: s140_nrf52_7.0.1_softdevice.hex
-	nrfjprog -f nrf52 --program components/softdevice/s140/hex/s140_nrf52_7.0.1_softdevice.hex --sectorerase
+	nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/s140/hex/s140_nrf52_7.0.1_softdevice.hex --sectorerase
 	nrfjprog -f nrf52 --reset
 
 erase:
 	nrfjprog -f nrf52 --eraseall
 
 SDK_CONFIG_FILE := ../config/sdk_config.h
-CMSIS_CONFIG_TOOL := external_tools/cmsisconfig/CMSIS_Configuration_Wizard.jar
+CMSIS_CONFIG_TOOL := $(SDK_ROOT)/external_tools/cmsisconfig/CMSIS_Configuration_Wizard.jar
 sdk_config:
 	java -jar $(CMSIS_CONFIG_TOOL) $(SDK_CONFIG_FILE)
