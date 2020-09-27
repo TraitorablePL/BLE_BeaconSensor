@@ -27,8 +27,6 @@
 #include "peer_manager.h"
 #include "peer_manager_handler.h"
 #include "ble_acqs_client.h"
-#include "ble_hrs_c.h"
-#include "ble_bas_c.h"
 #include "app_util.h"
 #include "app_timer.h"
 #include "bsp_btn_ble.h"
@@ -73,9 +71,8 @@ static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst,
 #define TX_BUF_SIZE             256
 #define READ_SIZE               1
 
-//BLE_ACQS_DEF(m_acqs); 
-BLE_HRS_C_DEF(m_hrs_c);    
-                                         /**< Structure used to identify the heart rate client module. */
+BLE_ACQS_DEF(m_acqs); 
+//BLE_HRS_C_DEF(m_hrs_c);    
 NRF_BLE_GATT_DEF(m_gatt);                                           /**< GATT module instance. */
 BLE_DB_DISCOVERY_DEF(m_db_disc);                                    /**< DB discovery module instance. */
 NRF_BLE_SCAN_DEF(m_scan);                                           /**< Scanning module instance. */
@@ -158,8 +155,8 @@ static void service_error_handler(uint32_t nrf_error) {
  */
 static void db_disc_handler(ble_db_discovery_evt_t * p_evt) {
 
-    //ble_acqs_on_db_disc_evt(&m_acqs, p_evt);
-    ble_hrs_on_db_disc_evt(&m_hrs_c, p_evt);
+    ble_acqs_on_db_disc_evt(&m_acqs, p_evt);
+    //ble_hrs_on_db_disc_evt(&m_hrs_c, p_evt);
 }
 
 /**@brief Function for handling Peer Manager events.
@@ -220,6 +217,9 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context) {
 
         case BLE_GAP_EVT_CONNECTED:
         {
+            NRF_LOG_INFO("Connected to the device.");
+
+#ifdef BOARD_PCA10059
             uint32_t size = sprintf(m_tx_buffer, "Connected to the device.\r\n");
             app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
 
@@ -228,7 +228,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context) {
                 app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
                 m_tx_buffer_free = false;
             }
-
+#endif
             // Discover peer's services.
             err_code = ble_db_discovery_start(&m_db_disc, p_ble_evt->evt.gap_evt.conn_handle);
             APP_ERROR_CHECK(err_code);
@@ -243,6 +243,9 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context) {
 
         case BLE_GAP_EVT_DISCONNECTED:
         {
+            NRF_LOG_INFO("Disconnected, reason 0x%x.", p_gap_evt->params.disconnected.reason);
+
+#ifdef BOARD_PCA10059
             uint32_t size = sprintf(m_tx_buffer, "Disconnected, reason 0x%x.\r\n", p_gap_evt->params.disconnected.reason);
             app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
 
@@ -251,6 +254,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context) {
                 app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
                 m_tx_buffer_free = false;
             }
+#endif
 
             err_code = bsp_indication_set(BSP_INDICATE_IDLE);
             APP_ERROR_CHECK(err_code);
@@ -262,6 +266,8 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context) {
 
         case BLE_GAP_EVT_TIMEOUT:
             if (p_gap_evt->params.timeout.src == BLE_GAP_TIMEOUT_SRC_CONN) {
+
+#ifdef BOARD_PCA10059
                 uint32_t size = sprintf(m_tx_buffer, "Connection Request timed out.\r\n");
                 app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
 
@@ -270,6 +276,8 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context) {
                     app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
                     m_tx_buffer_free = false;
                 }
+#endif
+
             }
             break;
 
@@ -331,12 +339,13 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context) {
  * @param[in]   evt_id      SoC event.
  * @param[in]   p_context   Context.
  */
+/*
 static void soc_evt_handler(uint32_t evt_id, void * p_context)
 {
     switch (evt_id)
     {
         case NRF_EVT_FLASH_OPERATION_SUCCESS:
-            /* fall through */
+            
         case NRF_EVT_FLASH_OPERATION_ERROR:
 
             if (m_memory_access_in_progress) {
@@ -349,6 +358,7 @@ static void soc_evt_handler(uint32_t evt_id, void * p_context)
             break;
     }
 }
+*/
 
 /**@brief Function for initializing the BLE stack.
  *
@@ -373,7 +383,7 @@ static void ble_stack_init(void) {
 
     // Register handlers for BLE and SoC events.
     NRF_SDH_BLE_OBSERVER(m_ble_observer, APP_BLE_OBSERVER_PRIO, ble_evt_handler, NULL);
-    NRF_SDH_SOC_OBSERVER(m_soc_observer, APP_SOC_OBSERVER_PRIO, soc_evt_handler, NULL);
+    //NRF_SDH_SOC_OBSERVER(m_soc_observer, APP_SOC_OBSERVER_PRIO, soc_evt_handler, NULL);
 }
 
 /**@brief Function for the Peer Manager initialization.
@@ -438,6 +448,7 @@ void bsp_event_handler(bsp_event_t event) {
 
 /**@brief Heart Rate Collector Handler.
  */
+/*
 static void hrs_c_evt_handler(ble_hrs_c_t * p_hrs_c, ble_hrs_c_evt_t * p_hrs_c_evt) {
 
     ret_code_t err_code;
@@ -497,15 +508,18 @@ static void hrs_c_evt_handler(ble_hrs_c_t * p_hrs_c, ble_hrs_c_evt_t * p_hrs_c_e
             break;
     }
 }
-/*
+*/
 static void acqs_evt_handler(ble_acqs_t * p_acqs, ble_acqs_evt_t * p_acqs_evt) {
 
     ret_code_t err_code;
 
     switch (p_acqs_evt->evt_type) {
 
-        case BLE_HRS_C_EVT_DISCOVERY_COMPLETE:
+        case BLE_ACQS_EVT_DISCOVERY_COMPLETE:
         {
+            NRF_LOG_INFO("Aquisition service discovered.");
+
+#ifdef BOARD_PCA10059
             uint32_t size = sprintf(m_tx_buffer, "Aquisition service discovered.\r\n");
             app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
 
@@ -514,11 +528,51 @@ static void acqs_evt_handler(ble_acqs_t * p_acqs, ble_acqs_evt_t * p_acqs_evt) {
                 app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
                 m_tx_buffer_free = false;
             }
+#endif
 
             err_code = ble_acqs_handles_assign(p_acqs,
                                                p_acqs_evt->conn_handle,
                                                &p_acqs_evt->params.handles);
             APP_ERROR_CHECK(err_code);
+
+            //ACQ service discovered. Enable notification.
+            //err_code = ble_hrs_c_hrm_notif_enable(p_hrs_c);
+            //APP_ERROR_CHECK(err_code);
+
+        }   break;
+
+        case BLE_ACQS_EVT_SINE_NOTIFICATION:
+        {
+            //NRF_LOG_INFO("Sine value = %d", p_hrs_c_evt->params.hrm.hr_value);
+            NRF_LOG_INFO("Sine value");
+
+#ifdef BOARD_PCA10059
+            uint32_t size = sprintf(m_tx_buffer, "Heart Rate = %d.\r\n", p_hrs_c_evt->params.hrm.hr_value);
+            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
+
+            if(m_tx_buffer_free){
+                app_fifo_get(&m_tx_fifo,m_tx_char);
+                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
+                m_tx_buffer_free = false;
+            }
+#endif
+        }   break;
+
+        case BLE_ACQS_EVT_COUNTER_NOTIFICATION:
+        {
+            NRF_LOG_INFO("Counter");
+            //NRF_LOG_INFO("Counter = %d", p_hrs_c_evt->params.hrm.hr_value);
+            
+#ifdef BOARD_PCA10059
+            uint32_t size = sprintf(m_tx_buffer, "Heart Rate = %d.\r\n", p_hrs_c_evt->params.hrm.hr_value);
+            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
+
+            if(m_tx_buffer_free){
+                app_fifo_get(&m_tx_fifo,m_tx_char);
+                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
+                m_tx_buffer_free = false;
+            }
+#endif
         }   break;
 
         case BLE_ACQS_EVT_DISCONNECTED:
@@ -530,28 +584,7 @@ static void acqs_evt_handler(ble_acqs_t * p_acqs, ble_acqs_evt_t * p_acqs_evt) {
             break;
     }
 }
-*/
 
-/**
- * @brief Heart rate collector initialization.
- */
-
-static void hrs_c_init(void) {
-
-    ble_hrs_c_init_t hrs_c_init_obj;
-
-    hrs_c_init_obj.evt_handler   = hrs_c_evt_handler;
-    hrs_c_init_obj.error_handler = service_error_handler;
-    hrs_c_init_obj.p_gatt_queue  = &m_ble_gatt_queue;
-
-    ret_code_t err_code = ble_hrs_c_init(&m_hrs_c, &hrs_c_init_obj);
-    APP_ERROR_CHECK(err_code);
-}
-
-/**
- * @brief Aquisition client initialization.
- */
-/*
 static void acqs_init(void) {
 
     ble_acqs_init_t acqs_init_obj;
@@ -563,7 +596,6 @@ static void acqs_init(void) {
     ret_code_t err_code = ble_acqs_init(&m_acqs, &acqs_init_obj);
     APP_ERROR_CHECK(err_code);
 }
-*/
 
 /**
  * @brief Database discovery collector initialization.
@@ -716,34 +748,6 @@ static void scan_init(void) {
     err_code = nrf_ble_scan_init(&m_scan, &init_scan, scan_evt_handler);
     APP_ERROR_CHECK(err_code);
 
-    /*
-    ble_uuid_t uuid =
-    {
-        .uuid = TARGET_UUID,
-        .type = BLE_UUID_TYPE_BLE,
-    };
-
-    err_code = nrf_ble_scan_filter_set(&m_scan,
-                                       SCAN_UUID_FILTER,
-                                       &uuid);
-    APP_ERROR_CHECK(err_code);
-
-    if (strlen(m_target_periph_name) != 0)
-    {
-        err_code = nrf_ble_scan_filter_set(&m_scan,
-                                           SCAN_NAME_FILTER,
-                                           m_target_periph_name);
-        APP_ERROR_CHECK(err_code);
-    }
-
-    if (is_connect_per_addr)
-    {
-       err_code = nrf_ble_scan_filter_set(&m_scan,
-                                          SCAN_ADDR_FILTER,
-                                          m_target_periph_addr.addr);
-       APP_ERROR_CHECK(err_code);
-    }
-    */
 
     err_code = nrf_ble_scan_filter_set( &m_scan,
                                         SCAN_NAME_FILTER,
@@ -891,8 +895,7 @@ int main(void) {
     gatt_init();
     peer_manager_init();
     db_discovery_init();
-    hrs_c_init();
-    //acqs_init();
+    acqs_init();
     scan_init();
 
     if (USBD_POWER_DETECTION) {

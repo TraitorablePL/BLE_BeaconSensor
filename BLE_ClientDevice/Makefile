@@ -95,10 +95,7 @@ SRC_FILES += \
   external/utf_converter/utf.c \
   components/softdevice/common/nrf_sdh.c \
   components/softdevice/common/nrf_sdh_ble.c \
-  components/softdevice/common/nrf_sdh_soc.c \
-  components/ble/ble_services/ble_bas_c/ble_bas_c.c \
-  components/ble/ble_services/ble_hrs_c/ble_hrs_c.c \
-  
+  components/softdevice/common/nrf_sdh_soc.c  
 
 # Include folders common to all targets
 INC_FOLDERS += \
@@ -232,6 +229,7 @@ CFLAGS += -DS140
 CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
+CFLAGS += -DDEBUG
 #CFLAGS += -Wall -Werror
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 # keep every function in a separate section, this allows linker to discard unused ones
@@ -255,6 +253,7 @@ ASMFLAGS += -DNRF52833_XXAA
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=7
 ASMFLAGS += -DS140
 ASMFLAGS += -DSOFTDEVICE_PRESENT
+ASMFLAGS += -DDEBUG
 
 # Linker flags
 LDFLAGS += $(OPT)

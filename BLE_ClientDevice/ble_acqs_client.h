@@ -10,8 +10,6 @@
 #include "nrf_ble_gq.h"
 #include "nrf_sdh_ble.h"
 
-#define BLE_ACQS_BLE_OBSERVER_PRIO 2
-
 #define BLE_ACQS_DEF(_name)                                                                        \
 static ble_acqs_t _name;                                                                           \
 NRF_SDH_BLE_OBSERVER(_name ## _obs,                                                                \
@@ -20,9 +18,9 @@ NRF_SDH_BLE_OBSERVER(_name ## _obs,                                             
 
 #define ACQ_UUID_BASE {0x77, 0x94, 0x9D, 0x36, 0xD4, 0xB9, 0x21, 0x21, 0x87, 0xD0, 0x02, 0x42, 0xAC, 0x13, 0x18, 0x40}
 
-#define ACQ_UUID_SERVICE 0xAAA0
-#define ACQ_UUID_SINE_CHAR 0xAAA1
-#define ACQ_UUID_COUNTER_CHAR 0xAAA2
+#define ACQ_UUID_SERVICE 0x0000
+#define ACQ_UUID_SINE_CHAR 0x0001
+#define ACQ_UUID_COUNTER_CHAR 0x0002
 
 typedef enum {
     BLE_ACQS_EVT_DISCOVERY_COMPLETE,  

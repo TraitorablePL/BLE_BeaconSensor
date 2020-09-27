@@ -56,7 +56,7 @@ void ble_acqs_on_db_disc_evt(ble_acqs_t* p_ble_acqs, ble_db_discovery_evt_t cons
         }
 
         //If the instance was assigned prior to db_discovery, assign the db_handles
-		/*
+		
         if (p_ble_acqs->conn_handle != BLE_CONN_HANDLE_INVALID){
             if ((p_ble_acqs->handles.sine_handle           == BLE_GATT_HANDLE_INVALID)&&
                 (p_ble_acqs->handles.sine_cccd_handle      == BLE_GATT_HANDLE_INVALID)&&
@@ -66,7 +66,7 @@ void ble_acqs_on_db_disc_evt(ble_acqs_t* p_ble_acqs, ble_db_discovery_evt_t cons
                 p_ble_acqs->handles = evt.params.handles;
             }
         }
-        */
+        
         if (p_ble_acqs->evt_handler != NULL) {
             evt.evt_type    = BLE_ACQS_EVT_DISCOVERY_COMPLETE;
             evt.conn_handle = p_evt->conn_handle;
