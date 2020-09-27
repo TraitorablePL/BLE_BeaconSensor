@@ -72,7 +72,6 @@ static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst,
 #define READ_SIZE               1
 
 BLE_ACQS_DEF(m_acqs); 
-//BLE_HRS_C_DEF(m_hrs_c);    
 NRF_BLE_GATT_DEF(m_gatt);                                           /**< GATT module instance. */
 BLE_DB_DISCOVERY_DEF(m_db_disc);                                    /**< DB discovery module instance. */
 NRF_BLE_SCAN_DEF(m_scan);                                           /**< Scanning module instance. */
@@ -156,7 +155,6 @@ static void service_error_handler(uint32_t nrf_error) {
 static void db_disc_handler(ble_db_discovery_evt_t * p_evt) {
 
     ble_acqs_on_db_disc_evt(&m_acqs, p_evt);
-    //ble_hrs_on_db_disc_evt(&m_hrs_c, p_evt);
 }
 
 /**@brief Function for handling Peer Manager events.
@@ -535,16 +533,19 @@ static void acqs_evt_handler(ble_acqs_t * p_acqs, ble_acqs_evt_t * p_acqs_evt) {
                                                &p_acqs_evt->params.handles);
             APP_ERROR_CHECK(err_code);
 
-            //ACQ service discovered. Enable notification.
-            //err_code = ble_hrs_c_hrm_notif_enable(p_hrs_c);
+            //ACQ service discovered. Enable notifications.
+            //err_code = ble_acqs_sine_notif_enable(p_acqs);
             //APP_ERROR_CHECK(err_code);
+
+            err_code = ble_acqs_counter_notif_enable(p_acqs);
+            APP_ERROR_CHECK(err_code);
 
         }   break;
 
         case BLE_ACQS_EVT_SINE_NOTIFICATION:
         {
             //NRF_LOG_INFO("Sine value = %d", p_hrs_c_evt->params.hrm.hr_value);
-            NRF_LOG_INFO("Sine value");
+            //NRF_LOG_INFO("Sine value");
 
 #ifdef BOARD_PCA10059
             uint32_t size = sprintf(m_tx_buffer, "Heart Rate = %d.\r\n", p_hrs_c_evt->params.hrm.hr_value);
@@ -560,7 +561,7 @@ static void acqs_evt_handler(ble_acqs_t * p_acqs, ble_acqs_evt_t * p_acqs_evt) {
 
         case BLE_ACQS_EVT_COUNTER_NOTIFICATION:
         {
-            NRF_LOG_INFO("Counter");
+            //NRF_LOG_INFO("Counter");
             //NRF_LOG_INFO("Counter = %d", p_hrs_c_evt->params.hrm.hr_value);
             
 #ifdef BOARD_PCA10059

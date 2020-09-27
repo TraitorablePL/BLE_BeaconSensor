@@ -29,6 +29,11 @@ typedef enum {
     BLE_ACQS_EVT_DISCONNECTED
 } ble_acqs_evt_type_t;
 
+typedef enum {  
+    SINE_NOTIFICATION,
+	COUNTER_NOTIFICATION
+} notification_enable_t;
+
 typedef struct {
     uint16_t sine_cccd_handle;
     uint16_t sine_handle;
