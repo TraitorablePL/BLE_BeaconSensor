@@ -42,7 +42,6 @@
 #define APP_BLE_CONN_CFG_TAG        1                                   /**< A tag identifying the SoftDevice BLE configuration. */
 
 #define APP_BLE_OBSERVER_PRIO       3                                   /**< Application's BLE observer priority. You shouldn't need to modify this value. */
-#define APP_SOC_OBSERVER_PRIO       1                                   /**< Applications' SoC observer priority. You shouldn't need to modify this value. */
 
 #define LED_MAIN_GREEN      (BSP_BOARD_LED_0)
 #define LED_RGB_RED         (BSP_BOARD_LED_1)
@@ -98,7 +97,6 @@ static bool         m_tx_buffer_free = true;                        /**< Flag to
 static char         m_tx_char[1];
 
 static uint16_t m_conn_handle;                                      /**< Current connection handle. */
-static bool     m_memory_access_in_progress;                        /**< Flag to keep track of ongoing operations on persistent memory. */
 
 static char const m_target_periph_name[] = "ACQ Beacon";            /**< Target advertising name */
 
@@ -332,32 +330,6 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context) {
     }
 }
 
-/**@brief SoftDevice SoC event handler.
- *
- * @param[in]   evt_id      SoC event.
- * @param[in]   p_context   Context.
- */
-/*
-static void soc_evt_handler(uint32_t evt_id, void * p_context)
-{
-    switch (evt_id)
-    {
-        case NRF_EVT_FLASH_OPERATION_SUCCESS:
-            
-        case NRF_EVT_FLASH_OPERATION_ERROR:
-
-            if (m_memory_access_in_progress) {
-                m_memory_access_in_progress = false;
-                scan_start();
-            }
-            break;
-
-        default:
-            break;
-    }
-}
-*/
-
 /**@brief Function for initializing the BLE stack.
  *
  * @details Initializes the SoftDevice and the BLE event interrupt.
@@ -381,7 +353,6 @@ static void ble_stack_init(void) {
 
     // Register handlers for BLE and SoC events.
     NRF_SDH_BLE_OBSERVER(m_ble_observer, APP_BLE_OBSERVER_PRIO, ble_evt_handler, NULL);
-    //NRF_SDH_SOC_OBSERVER(m_soc_observer, APP_SOC_OBSERVER_PRIO, soc_evt_handler, NULL);
 }
 
 /**@brief Function for the Peer Manager initialization.
@@ -481,11 +452,10 @@ static void acqs_evt_handler(ble_acqs_t * p_acqs, ble_acqs_evt_t * p_acqs_evt) {
 
         case BLE_ACQS_EVT_SINE_NOTIFICATION:
         {
-            //NRF_LOG_INFO("Sine value = %d", p_hrs_c_evt->params.hrm.hr_value);
-            //NRF_LOG_INFO("Sine value");
+            NRF_LOG_INFO("Sine value = "NRF_LOG_FLOAT_MARKER, NRF_LOG_FLOAT(p_acqs_evt->params.sine));
 
 #ifdef BOARD_PCA10059
-            uint32_t size = sprintf(m_tx_buffer, "Heart Rate = %d.\r\n", p_hrs_c_evt->params.hrm.hr_value);
+            uint32_t size = sprintf(m_tx_buffer, "Sine value = "NRF_LOG_FLOAT_MARKER"\r\n", NRF_LOG_FLOAT(p_acqs_evt->params.sine));
             app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
 
             if(m_tx_buffer_free){
@@ -498,11 +468,10 @@ static void acqs_evt_handler(ble_acqs_t * p_acqs, ble_acqs_evt_t * p_acqs_evt) {
 
         case BLE_ACQS_EVT_COUNTER_NOTIFICATION:
         {
-            //NRF_LOG_INFO("Counter");
-            //NRF_LOG_INFO("Counter = %d", p_hrs_c_evt->params.hrm.hr_value);
+            NRF_LOG_INFO("Counter value = %d", p_acqs_evt->params.counter);
             
 #ifdef BOARD_PCA10059
-            uint32_t size = sprintf(m_tx_buffer, "Heart Rate = %d.\r\n", p_hrs_c_evt->params.hrm.hr_value);
+            uint32_t size = sprintf(m_tx_buffer, "Counter = %d\r\n", p_acqs_evt->params.counter);
             app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
 
             if(m_tx_buffer_free){
@@ -514,9 +483,22 @@ static void acqs_evt_handler(ble_acqs_t * p_acqs, ble_acqs_evt_t * p_acqs_evt) {
         }   break;
 
         case BLE_ACQS_EVT_DISCONNECTED:
-            NRF_LOG_INFO("Disconnected.");
+        {
+            NRF_LOG_INFO("Disconnected");
+
+#ifdef BOARD_PCA10059
+            uint32_t size = sprintf(m_tx_buffer, "Disconnected\r\n");
+            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
+
+            if(m_tx_buffer_free){
+                app_fifo_get(&m_tx_fifo,m_tx_char);
+                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
+                m_tx_buffer_free = false;
+            }
+#endif
             scan_start();
-            break;
+        }   break;
+            
 
         default:
             break;
@@ -557,11 +539,6 @@ static void db_discovery_init(void) {
 static void scan_start(void) {
 
     ret_code_t err_code;
-
-    if (nrf_fstorage_is_busy(NULL)) {
-        m_memory_access_in_progress = true;
-        return;
-    }
 
     NRF_LOG_INFO("Starting scan.");
 

@@ -50,7 +50,6 @@ static void on_notification(ble_acqs_t* p_ble_acqs, const ble_evt_t * p_ble_evt)
         ble_acqs_evt.evt_type    = BLE_ACQS_EVT_COUNTER_NOTIFICATION;
         ble_acqs_evt.conn_handle = p_ble_acqs->conn_handle;
         ble_acqs_evt.params.counter = (uint16_t)((notify->data[1]<<8)|(notify->data[0]));
-        NRF_LOG_INFO("Counter value = %d", ble_acqs_evt.params.counter);
         
         p_ble_acqs->evt_handler(p_ble_acqs, &ble_acqs_evt);
     }
@@ -65,7 +64,6 @@ static void on_notification(ble_acqs_t* p_ble_acqs, const ble_evt_t * p_ble_evt)
         int receivedValue = (notify->data[0] & 0xFF) | ((notify->data[1] & 0xFF) << 8) | ((notify->data[2] & 0xFF) << 16) | ((notify->data[3] & 0xFF) << 24);
         float* floatValue = (float*)&receivedValue;
         ble_acqs_evt.params.sine = *floatValue;
-        NRF_LOG_INFO("Sine value = "NRF_LOG_FLOAT_MARKER, NRF_LOG_FLOAT(ble_acqs_evt.params.sine));
 
         p_ble_acqs->evt_handler(p_ble_acqs, &ble_acqs_evt);
     }
