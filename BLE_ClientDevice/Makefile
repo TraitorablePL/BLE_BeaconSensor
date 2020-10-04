@@ -205,7 +205,7 @@ INC_FOLDERS += \
   components/ble/nrf_ble_gq \
   components/ble/ble_services/ble_hrs \
   components/libraries/stack_guard \
-  components/libraries/log/src \
+  components/libraries/log/src
 
 # Libraries common to all targets
 LIB_FILES += \

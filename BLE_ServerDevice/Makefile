@@ -7,58 +7,58 @@ $(OUTPUT_DIRECTORY)/nrf51822_xxac.out: \
 
 # Source files common to all targets
 SRC_FILES += \
-components/libraries/log/src/nrf_log_backend_serial.c \
-components/libraries/log/src/nrf_log_frontend.c \
-components/libraries/button/app_button.c \
-components/libraries/util/app_error.c \
-components/libraries/util/app_error_weak.c \
-components/libraries/timer/app_timer.c \
-components/libraries/util/app_util_platform.c \
-components/libraries/crc16/crc16.c \
-components/libraries/fds/fds.c \
-components/libraries/fstorage/fstorage.c \
-components/libraries/hardfault/hardfault_implementation.c \
-components/libraries/util/nrf_assert.c \
-components/libraries/util/sdk_errors.c \
-components/libraries/util/sdk_mapped_flags.c \
-components/libraries/sensorsim/sensorsim.c \
-components/boards/boards.c \
-components/drivers_nrf/clock/nrf_drv_clock.c \
-components/drivers_nrf/common/nrf_drv_common.c \
-components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
-components/drivers_nrf/uart/nrf_drv_uart.c \
-components/libraries/bsp/bsp.c \
-components/libraries/bsp/bsp_btn_ble.c \
-components/libraries/bsp/bsp_nfc.c \
-main.c \
-ble_acqs.c \
-external/segger_rtt/RTT_Syscalls_GCC.c \
-external/segger_rtt/SEGGER_RTT.c \
-external/segger_rtt/SEGGER_RTT_printf.c \
-components/ble/common/ble_advdata.c \
-components/ble/ble_advertising/ble_advertising.c \
-components/ble/common/ble_conn_params.c \
-components/ble/common/ble_conn_state.c \
-components/ble/common/ble_srv_common.c \
-components/ble/peer_manager/gatt_cache_manager.c \
-components/ble/peer_manager/gatts_cache_manager.c \
-components/ble/peer_manager/id_manager.c \
-components/ble/nrf_ble_gatt/nrf_ble_gatt.c \
-components/ble/peer_manager/peer_data.c \
-components/ble/peer_manager/peer_data_storage.c \
-components/ble/peer_manager/peer_database.c \
-components/ble/peer_manager/peer_id.c \
-components/ble/peer_manager/peer_manager.c \
-components/ble/peer_manager/pm_buffer.c \
-components/ble/peer_manager/pm_mutex.c \
-components/ble/peer_manager/security_dispatcher.c \
-components/ble/peer_manager/security_manager.c \
-components/toolchain/gcc/gcc_startup_nrf51.S \
-components/toolchain/system_nrf51.c \
-components/ble/ble_services/ble_bas/ble_bas.c \
-components/ble/ble_services/ble_dis/ble_dis.c \
-components/ble/ble_services/ble_hrs/ble_hrs.c \
-components/softdevice/common/softdevice_handler/softdevice_handler.c \
+  components/libraries/log/src/nrf_log_backend_serial.c \
+  components/libraries/log/src/nrf_log_frontend.c \
+  components/libraries/button/app_button.c \
+  components/libraries/util/app_error.c \
+  components/libraries/util/app_error_weak.c \
+  components/libraries/timer/app_timer.c \
+  components/libraries/util/app_util_platform.c \
+  components/libraries/crc16/crc16.c \
+  components/libraries/fds/fds.c \
+  components/libraries/fstorage/fstorage.c \
+  components/libraries/hardfault/hardfault_implementation.c \
+  components/libraries/util/nrf_assert.c \
+  components/libraries/util/sdk_errors.c \
+  components/libraries/util/sdk_mapped_flags.c \
+  components/libraries/sensorsim/sensorsim.c \
+  components/boards/boards.c \
+  components/drivers_nrf/clock/nrf_drv_clock.c \
+  components/drivers_nrf/common/nrf_drv_common.c \
+  components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
+  components/drivers_nrf/uart/nrf_drv_uart.c \
+  components/libraries/bsp/bsp.c \
+  components/libraries/bsp/bsp_btn_ble.c \
+  components/libraries/bsp/bsp_nfc.c \
+  main.c \
+  ble_acqs.c \
+  external/segger_rtt/RTT_Syscalls_GCC.c \
+  external/segger_rtt/SEGGER_RTT.c \
+  external/segger_rtt/SEGGER_RTT_printf.c \
+  components/ble/common/ble_advdata.c \
+  components/ble/ble_advertising/ble_advertising.c \
+  components/ble/common/ble_conn_params.c \
+  components/ble/common/ble_conn_state.c \
+  components/ble/common/ble_srv_common.c \
+  components/ble/peer_manager/gatt_cache_manager.c \
+  components/ble/peer_manager/gatts_cache_manager.c \
+  components/ble/peer_manager/id_manager.c \
+  components/ble/nrf_ble_gatt/nrf_ble_gatt.c \
+  components/ble/peer_manager/peer_data.c \
+  components/ble/peer_manager/peer_data_storage.c \
+  components/ble/peer_manager/peer_database.c \
+  components/ble/peer_manager/peer_id.c \
+  components/ble/peer_manager/peer_manager.c \
+  components/ble/peer_manager/pm_buffer.c \
+  components/ble/peer_manager/pm_mutex.c \
+  components/ble/peer_manager/security_dispatcher.c \
+  components/ble/peer_manager/security_manager.c \
+  components/toolchain/gcc/gcc_startup_nrf51.S \
+  components/toolchain/system_nrf51.c \
+  components/ble/ble_services/ble_bas/ble_bas.c \
+  components/ble/ble_services/ble_dis/ble_dis.c \
+  components/ble/ble_services/ble_hrs/ble_hrs.c \
+  components/softdevice/common/softdevice_handler/softdevice_handler.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \

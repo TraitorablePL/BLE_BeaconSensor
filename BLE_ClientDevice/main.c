@@ -534,8 +534,8 @@ static void acqs_evt_handler(ble_acqs_t * p_acqs, ble_acqs_evt_t * p_acqs_evt) {
             APP_ERROR_CHECK(err_code);
 
             //ACQ service discovered. Enable notifications.
-            //err_code = ble_acqs_sine_notif_enable(p_acqs);
-            //APP_ERROR_CHECK(err_code);
+            err_code = ble_acqs_sine_notif_enable(p_acqs);
+            APP_ERROR_CHECK(err_code);
 
             err_code = ble_acqs_counter_notif_enable(p_acqs);
             APP_ERROR_CHECK(err_code);

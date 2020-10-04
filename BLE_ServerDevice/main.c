@@ -200,6 +200,7 @@ static void pm_evt_handler(pm_evt_t const * p_evt){
 static void sine_timeout_handler(void* p_context){
 	
 	float sine = sine_value_get(degree);
+	//float test = 0.125;
 	sine_characteristic_notify(&m_acqs, &sine);
 	degree++;
 }

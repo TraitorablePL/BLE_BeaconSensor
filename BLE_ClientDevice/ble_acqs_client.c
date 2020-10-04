@@ -60,11 +60,13 @@ static void on_notification(ble_acqs_t* p_ble_acqs, const ble_evt_t * p_ble_evt)
         ble_acqs_evt_t ble_acqs_evt;
         ble_gattc_evt_hvx_t const* notify = &p_ble_evt->evt.gattc_evt.params.hvx;
 
-        ble_acqs_evt.evt_type    = BLE_ACQS_EVT_SINE_NOTIFICATION;
+        ble_acqs_evt.evt_type = BLE_ACQS_EVT_SINE_NOTIFICATION;
         ble_acqs_evt.conn_handle = p_ble_acqs->conn_handle;
-        ble_acqs_evt.params.sine = (float)((notify->data[3]<<24)|(notify->data[2]<<16)|(notify->data[1]<<8)|(notify->data[0]));
-        NRF_LOG_INFO("Sine value = %d", ble_acqs_evt.params.sine);
-        
+        int receivedValue = (notify->data[0] & 0xFF) | ((notify->data[1] & 0xFF) << 8) | ((notify->data[2] & 0xFF) << 16) | ((notify->data[3] & 0xFF) << 24);
+        float* floatValue = (float*)&receivedValue;
+        ble_acqs_evt.params.sine = *floatValue;
+        NRF_LOG_INFO("Sine value = "NRF_LOG_FLOAT_MARKER, NRF_LOG_FLOAT(ble_acqs_evt.params.sine));
+
         p_ble_acqs->evt_handler(p_ble_acqs, &ble_acqs_evt);
     }
 }
