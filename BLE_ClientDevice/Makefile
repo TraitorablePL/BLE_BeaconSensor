@@ -3,7 +3,7 @@ TARGETS          := nrf52840_xxaa
 OUTPUT_DIRECTORY := _build
 
 $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
-  LINKER_SCRIPT  := nrf51840_xxaa.ld
+  LINKER_SCRIPT  := nrf52840_xxaa.ld
 
 # Source files common to all targets
 SRC_FILES += \
@@ -93,18 +93,15 @@ SRC_FILES += \
   components/ble/peer_manager/security_dispatcher.c \
   components/ble/peer_manager/security_manager.c \
   external/utf_converter/utf.c \
-  components/ble/ble_services/ble_bas_c/ble_bas_c.c \
-  components/ble/ble_services/ble_hrs_c/ble_hrs_c.c \
   external/segger_rtt/SEGGER_RTT.c \
   external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
-  external/segger_rtt/SEGGER_RTT_printf.c \
+  external/segger_rtt/SEGGER_RTT_printf.c
 
 # Include folders common to all targets
 INC_FOLDERS += \
   components/ble/ble_services/ble_ancs_c \
   components/ble/ble_services/ble_ias_c \
   components/libraries/pwm \
-  external/nrf_oberon/include \
   components/libraries/usbd/class/cdc/acm \
   components/libraries/usbd/class/hid/generic \
   components/libraries/usbd/class/msc \
@@ -208,7 +205,7 @@ INC_FOLDERS += \
   components/ble/nrf_ble_gq \
   components/ble/ble_services/ble_hrs \
   components/libraries/stack_guard \
-  components/libraries/log/src \
+  components/libraries/log/src
 
 # Libraries common to all targets
 LIB_FILES += \
@@ -232,6 +229,7 @@ CFLAGS += -DS140
 CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
+CFLAGS += -DDEBUG
 #CFLAGS += -Wall -Werror
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 # keep every function in a separate section, this allows linker to discard unused ones
@@ -255,6 +253,7 @@ ASMFLAGS += -DNRF52840_XXAA
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=7
 ASMFLAGS += -DS140
 ASMFLAGS += -DSOFTDEVICE_PRESENT
+ASMFLAGS += -DDEBUG
 
 # Linker flags
 LDFLAGS += $(OPT)
@@ -266,10 +265,10 @@ LDFLAGS += -Wl,--gc-sections
 # use newlib in nano version
 LDFLAGS += --specs=nano.specs
 
-nrf52840_xxaa: CFLAGS += -D__HEAP_SIZE=8192
-nrf52840_xxaa: CFLAGS += -D__STACK_SIZE=8192
-nrf52840_xxaa: ASMFLAGS += -D__HEAP_SIZE=8192
-nrf52840_xxaa: ASMFLAGS += -D__STACK_SIZE=8192
+nrf52833_xxaa: CFLAGS += -D__HEAP_SIZE=2048
+nrf52833_xxaa: CFLAGS += -D__STACK_SIZE=2048
+nrf52833_xxaa: ASMFLAGS += -D__HEAP_SIZE=2048
+nrf52833_xxaa: ASMFLAGS += -D__STACK_SIZE=2048
 
 # Add standard libraries at the very end of the linker input, after all objects
 # that may need symbols provided by these libraries.
