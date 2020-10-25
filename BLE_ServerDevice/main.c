@@ -59,7 +59,7 @@
 
 #define APP_FEATURE_NOT_SUPPORTED			BLE_GATT_STATUS_ATTERR_APP_BEGIN + 2        /**< Reply when unsupported features are requested. */
 
-#define SINE_TIMER_INTERVAL 				APP_TIMER_TICKS(500, APP_TIMER_PRESCALER) 	/**< 200 ms interval */
+#define SINE_TIMER_INTERVAL 				APP_TIMER_TICKS(100, APP_TIMER_PRESCALER) 	/**< 100 ms interval */
 #define COUNTER_TIMER_INTERVAL 				APP_TIMER_TICKS(1000, APP_TIMER_PRESCALER) 	/**< 1000 ms interval */
 
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID; 								/**< Connection Handle */
