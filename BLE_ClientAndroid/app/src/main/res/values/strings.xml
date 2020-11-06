@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">BLE_ClientAndroid</string>
+    <string name="app_name">ACQ Client</string>
+    <string name="scan_button">Scan for devices</string>
 </resources>
