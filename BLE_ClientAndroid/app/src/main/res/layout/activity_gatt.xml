@@ -4,8 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/colorPrimary"
-    tools:context=".MainActivity">
+    tools:context=".GATTActivity">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
@@ -20,20 +19,20 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <Button
-            android:id="@+id/scanButton"
+        <ImageButton
+            android:id="@+id/imageButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="end"
-            android:onClick="scanDevices"
-            android:text="@string/scan_button"
-            tools:layout_editor_absoluteX="261dp"
-            tools:layout_editor_absoluteY="4dp" />
+            android:contentDescription="@string/return_arrow"
+            android:onClick="onClickReturn"
+            app:srcCompat="@drawable/abc_vector_test"
+            tools:layout_editor_absoluteX="16dp"
+            tools:layout_editor_absoluteY="12dp" />
 
     </androidx.appcompat.widget.Toolbar>
 
     <ListView
-        android:id="@+id/scannedDevicesList"
+        android:id="@+id/servicesList"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginTop="56dp"

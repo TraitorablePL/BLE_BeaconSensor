@@ -18,6 +18,7 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
@@ -29,20 +30,22 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int REQUEST_ACCESS_COARSE_LOCATION = 2;
     private static final long SCAN_PERIOD = 3000;
-    private static boolean mScanning = false;;
+
+    private static boolean mScanning = false;
 
     private ListView devicesList;
     private Button scanButton;
     private Toolbar appToolbar;
-    private BluetoothAdapter bluetoothAdapter;
-    private BluetoothManager bluetoothManager;
     private BluetoothLeScanner bluetoothLeScanner;
+
+    public static BluetoothAdapter bluetoothAdapter;
+    public static BluetoothManager bluetoothManager;
+    public static BluetoothDevice bluetoothDevice;
 
     private Handler scanDelayHandler = new Handler();
 
     private ArrayAdapter<String> listAdapter;
     private ArrayList<BluetoothDevice> scannedDevices;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,8 +65,19 @@ public class MainActivity extends AppCompatActivity {
         bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
 
         listAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1);
+
         devicesList = findViewById(R.id.scannedDevicesList);
         devicesList.setAdapter(listAdapter);
+        devicesList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                Toast.makeText(getApplicationContext(), scannedDevices.get(position).getName(), Toast.LENGTH_SHORT).show();
+                bluetoothDevice = scannedDevices.get(position);
+                Intent intent = new Intent(MainActivity.this, GATTActivity.class);
+                startActivity(intent);
+            }
+        });
 
         checkBluetoothState();
 
