@@ -63,13 +63,22 @@ extern "C" {
 #define RTS_PIN_NUMBER 8
 #define HWFC           true
 
+#define CUSTOM
+
+#ifdef CUSTOM
+#define SPIM0_SCK_PIN       1     /**< SPI clock GPIO pin number. */
+#define SPIM0_MOSI_PIN      2     /**< SPI Master Out Slave In GPIO pin number. */
+#define SPIM0_MISO_PIN      3     /**< SPI Master In Slave Out GPIO pin number. */
+#define SPIM0_SS_PIN        6      /**< SPI Slave Select GPIO pin number.  30*/
+#else
 #define SPIM0_SCK_PIN       25     /**< SPI clock GPIO pin number. */
 #define SPIM0_MOSI_PIN      24     /**< SPI Master Out Slave In GPIO pin number. */
 #define SPIM0_MISO_PIN      23     /**< SPI Master In Slave Out GPIO pin number. */
-#define SPIM0_SS_PIN        1      /**< SPI Slave Select GPIO pin number.  30*/
+#define SPIM0_SS_PIN        30      /**< SPI Slave Select GPIO pin number.  30*/
+#endif
 
-#define SCL_PIN             1     // SCL signal pin
-#define SDA_PIN             0     // SDA signal pin
+//#define SCL_PIN             1     // SCL signal pin
+//#define SDA_PIN             0     // SDA signal pin
 
 #define SER_CONN_CHIP_RESET_PIN     30    // Pin used to reset connectivity chip
 

@@ -22,6 +22,9 @@
 #include "nrf_ble_gatt.h"
 #include "ble_conn_state.h"
 
+#include "custom_board.h"
+#include "nrf_drv_spi.h"
+
 #define NRF_LOG_MODULE_NAME "APP"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
@@ -59,12 +62,35 @@
 #define APP_FEATURE_NOT_SUPPORTED			BLE_GATT_STATUS_ATTERR_APP_BEGIN + 2        /**< Reply when unsupported features are requested. */
 
 #define SINE_TIMER_INTERVAL 				APP_TIMER_TICKS(100, APP_TIMER_PRESCALER) 	/**< 100 ms interval */
-#define COUNTER_TIMER_INTERVAL 				APP_TIMER_TICKS(1000, APP_TIMER_PRESCALER) 	/**< 1000 ms interval */
+#define COUNTER_TIMER_INTERVAL 				APP_TIMER_TICKS(100, APP_TIMER_PRESCALER) 	/**< 1000 ms interval */
+
+///SPI
+
+#define BUFFER_SIZE                     16
+
+#define WRITE                           (0<<7)
+#define READ                            (1<<7)
+
+#define DEV_ID0							0x00
+#define DEV_ID1							0x01
+#define PART_ID							0x02
+
+typedef struct {
+    uint8_t rw_addr;
+    uint8_t data[BUFFER_SIZE];
+    uint8_t len;
+} spi_message_t;
+
+static const nrf_drv_spi_t  spi = NRF_DRV_SPI_INSTANCE(0);                              /**< SPI instance. */
+static volatile bool        spi_transfer_done = true;                                   /**< Flag used to indicate that SPI instance completed the transfer. */
+
+static uint8_t              m_rx_buf[BUFFER_SIZE];                                      /**< RX buffer. */
+spi_message_t               *current_msg;
 
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID; 								/**< Connection Handle */
 
 static ble_acqs_t m_acqs;																/**< Aquisition Service Structure */
-static uint16_t counter;
+//static uint16_t counter;
 static uint16_t degree;
 
 static nrf_ble_gatt_t m_gatt;                             								/**< Structure for gatt module */
@@ -204,9 +230,18 @@ static void sine_timeout_handler(void* p_context){
 }
 
 static void counter_timeout_handler(void* p_context){
+
+	spi_message_t dev1_read = {
+        .rw_addr = (READ | PART_ID),
+        .len = 1
+    };
+
+	current_msg = &dev1_read;
+
+    memset(m_rx_buf, 0, BUFFER_SIZE);
+    spi_transfer_done = false;
+    APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_rx_buf, current_msg->len+1));
 	
-	counter_characteristic_notify(&m_acqs, &counter);
-	counter++;
 }
 
 /**@brief Function for the Timer initialization.
@@ -624,6 +659,100 @@ static void power_manage(void){
 	APP_ERROR_CHECK(err_code);
 }
 
+/**
+ * @brief Function for handling SPI Message timer timeout.
+ */
+/*
+void spi_message_timeout_handler(void * p_context){
+
+    UNUSED_PARAMETER(p_context);
+    if(spi_transfer_done){
+        // Reset rx buffer and transfer done flag
+        memset(m_rx_buf, 0, BUFFER_SIZE);
+        spi_transfer_done = false;
+        data_read = true;
+        APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_rx_buf, current_msg->len+1));
+    }
+}
+*/
+
+/**
+ * @brief SPI user event handler.
+ * @param event
+ */
+
+void spi_event_handler(nrf_drv_spi_evt_t const * p_event){
+
+    spi_transfer_done = true;
+
+	uint16_t value = m_rx_buf[1];
+
+	counter_characteristic_notify(&m_acqs, &value);
+
+	//NRF_LOG_INFO("Transfer completed.\r\n");
+	//NRF_LOG_INFO("Received: 0x%x\r\n", m_rx_buf[1]);
+}
+
+/**
+ * @brief Function for SPI bus initialization.
+ */
+void spi_init(void){
+
+    nrf_drv_spi_config_t spi_config = NRF_DRV_SPI_DEFAULT_CONFIG;
+    spi_config.ss_pin   = SPIM0_SS_PIN;
+    spi_config.miso_pin = SPIM0_MISO_PIN;
+    spi_config.mosi_pin = SPIM0_MOSI_PIN;
+    spi_config.sck_pin  = SPIM0_SCK_PIN;
+    spi_config.mode = NRF_DRV_SPI_MODE_3; //CPOL=1, CPHA=1
+    spi_config.frequency = NRF_DRV_SPI_FREQ_500K;
+
+    uint32_t err_code = nrf_drv_spi_init(&spi, &spi_config, spi_event_handler);
+    APP_ERROR_CHECK(err_code);
+}
+
+/**@brief Function for ADXL313 initialization.
+ */
+/*
+void adxl_init(void){
+
+    spi_message_t dev1_read = {
+        .rw_addr = (WRITE | DEV_ID0),
+        .len = 1
+    };
+
+	current_msg = &dev1_read;
+
+    memset(m_rx_buf, 0, BUFFER_SIZE);
+    spi_transfer_done = false;
+    APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_rx_buf, current_msg->len+1));
+
+    while(!spi_transfer_done){};
+
+	spi_message_t dev2_read = {
+        .rw_addr = (WRITE | DEV_ID1),
+        .len = 1
+    };
+
+	current_msg = &dev2_read;
+	memset(m_rx_buf, 0, BUFFER_SIZE);
+    spi_transfer_done = false;
+    APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_rx_buf, current_msg->len+1));
+
+    while(!spi_transfer_done){};
+
+	spi_message_t part_read = {
+        .rw_addr = (WRITE | PART_ID),
+        .len = 1
+    };
+
+	current_msg = &part_read;
+	memset(m_rx_buf, 0, BUFFER_SIZE);
+    spi_transfer_done = false;
+    APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_rx_buf, current_msg->len+1));
+
+    while(!spi_transfer_done){};
+}
+*/
 /**@brief Function for application main entry.
  */
 int main(void){
@@ -635,6 +764,7 @@ int main(void){
 	APP_ERROR_CHECK(err_code);
 
 	timers_init();
+	spi_init();
 	buttons_leds_init();
 	ble_stack_init();
 	peer_manager_init();
@@ -648,6 +778,8 @@ int main(void){
 	NRF_LOG_INFO("Application initialized!\r\n");
 	application_timers_start();
 	advertising_start();
+
+	//adxl_welcome();
 
 	// Enter main loop.
 	while(1){

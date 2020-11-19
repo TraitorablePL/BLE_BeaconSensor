@@ -26,6 +26,7 @@ SRC_FILES += \
   components/drivers_nrf/common/nrf_drv_common.c \
   components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
   components/drivers_nrf/uart/nrf_drv_uart.c \
+  components/drivers_nrf/spi_master/nrf_drv_spi.c \
   components/libraries/bsp/bsp.c \
   main.c \
   ble_acqs.c \
