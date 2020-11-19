@@ -360,8 +360,6 @@ static void conn_params_init(void){
  * @param[in] ble_adv_evt  Advertising event.
  */
 static void on_adv_evt(ble_adv_evt_t ble_adv_evt){
-	
-	uint32_t err_code;
 
 	switch (ble_adv_evt){
 		case BLE_ADV_EVT_FAST:
