@@ -33,17 +33,21 @@ static void on_write(ble_evt_t* p_ble_evt, ble_acqs_t* p_acqs){
 		
 		if(p_acqs->sine_notification == SINE_NOTIFICATION_DISABLED){
 			p_acqs->sine_notification = SINE_NOTIFICATION_ENABLED;
+			NRF_LOG_INFO("Sine notification enabled\r\n");
 		}
 		else{
 			p_acqs->sine_notification = SINE_NOTIFICATION_DISABLED;
+			NRF_LOG_INFO("Sine notification disabled\r\n");
 		}
 	}
 	else if((p_evt_write->handle == p_acqs->counter_handles.cccd_handle) && (p_evt_write->len == 2)){
 		if(p_acqs->counter_notification == COUNTER_NOTIFICATION_DISABLED){
 			p_acqs->counter_notification = COUNTER_NOTIFICATION_ENABLED;
+			NRF_LOG_INFO("Counter notification enabled\r\n");
 		}
 		else{
 			p_acqs->counter_notification = COUNTER_NOTIFICATION_DISABLED;
+			NRF_LOG_INFO("Counter notification disabled\r\n");
 		}
 	}
 }
@@ -65,7 +69,6 @@ void ble_acqs_on_ble_evt(ble_evt_t const* p_ble_evt, ble_acqs_t* p_acqs){
 			
 		case BLE_GATTS_EVT_WRITE:
 			on_write((ble_evt_t*)p_ble_evt, p_acqs);
-			NRF_LOG_INFO("ACQ Write\r\n");
 			break;
 			
 		default:

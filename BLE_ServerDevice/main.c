@@ -16,7 +16,6 @@
 #include "app_timer.h"
 #include "bsp.h"
 #include "nrf_delay.h"
-#include "bsp_btn_ble.h"
 #include "peer_manager.h"
 #include "fds.h"
 #include "fstorage.h"
@@ -90,10 +89,10 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name){
 }
 
 void advertising_start(void){
-	
 	ret_code_t err_code;
 	err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
 	APP_ERROR_CHECK(err_code);
+	NRF_LOG_INFO("Advertising started\r\n");
 }
 
 /**@brief Function for handling File Data Storage events.
@@ -298,9 +297,11 @@ static void application_timers_start(void){
 
 	err_code = app_timer_start(m_sine_timer_id, SINE_TIMER_INTERVAL, NULL);
 	APP_ERROR_CHECK(err_code);
+	NRF_LOG_INFO("Sine Timer 100ms started\r\n");
 	
 	err_code = app_timer_start(m_counter_timer_id, COUNTER_TIMER_INTERVAL, NULL);
 	APP_ERROR_CHECK(err_code);
+	NRF_LOG_INFO("Counter Timer 1s started\r\n");
 	
 }
 
@@ -352,28 +353,6 @@ static void conn_params_init(void){
 	APP_ERROR_CHECK(err_code);
 }
 
-/**@brief Function for putting the chip into sleep mode.
- *
- * @note This function will not return.
- */
-
-/*
-static void sleep_mode_enter(void){
-	
-	uint32_t err_code = bsp_indication_set(BSP_INDICATE_IDLE);
-
-	APP_ERROR_CHECK(err_code);
-
-	// Prepare wakeup buttons.
-	err_code = bsp_btn_ble_sleep_mode_prepare();
-	APP_ERROR_CHECK(err_code);
-
-	// Go to system-off mode (this function will not return; wakeup will cause a reset).
-	err_code = sd_power_system_off();
-	APP_ERROR_CHECK(err_code);
-}
-*/
-
 /**@brief Function for handling advertising events.
  *
  * @details This function will be called for advertising events which are passed to the application.
@@ -387,14 +366,9 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt){
 	switch (ble_adv_evt){
 		case BLE_ADV_EVT_FAST:
 			NRF_LOG_INFO("Fast Advertising\r\n");
-			err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING);
-			APP_ERROR_CHECK(err_code);
 			break;
 
 		case BLE_ADV_EVT_IDLE:
-			//sleep_mode_enter();
-			break;
-
 		default:
 			break;
 	}
@@ -411,13 +385,13 @@ static void on_ble_evt(ble_evt_t * p_ble_evt){
 	switch (p_ble_evt->header.evt_id){
 		case BLE_GAP_EVT_CONNECTED:
 			NRF_LOG_INFO("Connected\r\n");
-			err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
-			APP_ERROR_CHECK(err_code);
+			//err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
+			//APP_ERROR_CHECK(err_code);
 			m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
 			break;
 
 		case BLE_GAP_EVT_DISCONNECTED:
-			NRF_LOG_INFO(	"Disconnected, reason %d\r\n",
+			NRF_LOG_INFO("Disconnected, reason %d\r\n",
 							p_ble_evt->evt.gap_evt.params.disconnected.reason);
 			m_conn_handle = BLE_CONN_HANDLE_INVALID;
 			break;
@@ -442,32 +416,31 @@ static void on_ble_evt(ble_evt_t * p_ble_evt){
 			break;
 
 		case BLE_GATTS_EVT_RW_AUTHORIZE_REQUEST:
-			{
-				ble_gatts_evt_rw_authorize_request_t req;
-				ble_gatts_rw_authorize_reply_params_t auth_reply;
+		{
+			ble_gatts_evt_rw_authorize_request_t req;
+			ble_gatts_rw_authorize_reply_params_t auth_reply;
 
-				req = p_ble_evt->evt.gatts_evt.params.authorize_request;
+			req = p_ble_evt->evt.gatts_evt.params.authorize_request;
 
-				if(req.type != BLE_GATTS_AUTHORIZE_TYPE_INVALID){
-					
-					if(	(req.request.write.op == BLE_GATTS_OP_PREP_WRITE_REQ) ||
-						(req.request.write.op == BLE_GATTS_OP_EXEC_WRITE_REQ_NOW) ||
-						(req.request.write.op == BLE_GATTS_OP_EXEC_WRITE_REQ_CANCEL)){
-								
-						if(req.type == BLE_GATTS_AUTHORIZE_TYPE_WRITE){
-							auth_reply.type = BLE_GATTS_AUTHORIZE_TYPE_WRITE;
-						}
-						else{
-							auth_reply.type = BLE_GATTS_AUTHORIZE_TYPE_READ;
-						}
-						auth_reply.params.write.gatt_status = APP_FEATURE_NOT_SUPPORTED;
-						err_code = sd_ble_gatts_rw_authorize_reply(	p_ble_evt->evt.gatts_evt.conn_handle,
-																	&auth_reply);
-						APP_ERROR_CHECK(err_code);
+			if(req.type != BLE_GATTS_AUTHORIZE_TYPE_INVALID){
+				
+				if(	(req.request.write.op == BLE_GATTS_OP_PREP_WRITE_REQ) ||
+					(req.request.write.op == BLE_GATTS_OP_EXEC_WRITE_REQ_NOW) ||
+					(req.request.write.op == BLE_GATTS_OP_EXEC_WRITE_REQ_CANCEL)){
+							
+					if(req.type == BLE_GATTS_AUTHORIZE_TYPE_WRITE){
+						auth_reply.type = BLE_GATTS_AUTHORIZE_TYPE_WRITE;
 					}
+					else{
+						auth_reply.type = BLE_GATTS_AUTHORIZE_TYPE_READ;
+					}
+					auth_reply.params.write.gatt_status = APP_FEATURE_NOT_SUPPORTED;
+					err_code = sd_ble_gatts_rw_authorize_reply(	p_ble_evt->evt.gatts_evt.conn_handle,
+																&auth_reply);
+					APP_ERROR_CHECK(err_code);
 				}
-			} 
-			break;
+			}
+		} break;
 
 		default:
 			break;
@@ -487,7 +460,6 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt){
 	pm_on_ble_evt(p_ble_evt);
 	ble_acqs_on_ble_evt(p_ble_evt, &m_acqs);
 	ble_conn_params_on_ble_evt(p_ble_evt);
-	bsp_btn_ble_on_ble_evt(p_ble_evt);
 	on_ble_evt(p_ble_evt);
 	ble_advertising_on_ble_evt(p_ble_evt);
 	nrf_ble_gatt_on_ble_evt(&m_gatt, p_ble_evt);
@@ -553,30 +525,17 @@ static void ble_stack_init(void){
  *
  * @param[in]   event   Event generated by button press.
  */
+
 void bsp_event_handler(bsp_event_t event){
 
 	uint32_t err_code;
 
 	switch (event){
-		case BSP_EVENT_SLEEP:
-			//sleep_mode_enter();
-			break;
-
-		case BSP_EVENT_DISCONNECT:
+		case BSP_BOARD_BUTTON_0:
 			err_code = sd_ble_gap_disconnect(	m_conn_handle,
 												BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
 			if (err_code != NRF_ERROR_INVALID_STATE){
 				APP_ERROR_CHECK(err_code);
-			}
-			break;
-
-		case BSP_EVENT_WHITELIST_OFF:
-			if (m_conn_handle == BLE_CONN_HANDLE_INVALID){
-				err_code = ble_advertising_restart_without_whitelist();
-				
-				if (err_code != NRF_ERROR_INVALID_STATE){
-					APP_ERROR_CHECK(err_code);
-				}
 			}
 			break;
 
@@ -650,17 +609,12 @@ static void advertising_init(void){
  *
  * @param[out] p_erase_bonds  Will be true if the clear bonding button was pressed to wake the application up.
  */
+
 static void buttons_leds_init(void){
 	
-	bsp_event_t startup_event;
-
 	uint32_t err_code = bsp_init(	BSP_INIT_LED | BSP_INIT_BUTTONS,
 									APP_TIMER_TICKS(100, APP_TIMER_PRESCALER),
 									bsp_event_handler);
-
-	APP_ERROR_CHECK(err_code);
-
-	err_code = bsp_btn_ble_init(NULL, &startup_event);
 	APP_ERROR_CHECK(err_code);
 }
 
