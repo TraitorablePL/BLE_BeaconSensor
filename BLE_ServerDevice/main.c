@@ -32,7 +32,7 @@
 #define IS_SRVC_CHANGED_CHARACT_PRESENT		1                                           /**< Include or not the service_changed characteristic. if not enabled, the server's database cannot be changed for the lifetime of the device*/
 
 #define DEVICE_NAME                      	"ACQ Beacon"                                /**< Name of device. Will be included in the advertising data. */
-#define MANUFACTURER_NAME                	"NordicSemiconductor"                       /**< Manufacturer. Will be passed to Device Information Service. */
+#define MANUFACTURER_NAME                	"AGH MTM"                       			/**< Manufacturer. Will be passed to Device Information Service. */
 #define APP_ADV_INTERVAL                 	160                                         /**< The advertising interval (in units of 0.625 ms. This value corresponds to 100 ms). */
 
 #define APP_TIMER_PRESCALER              	0                                           /**< Value of the RTC1 PRESCALER register. */
@@ -61,8 +61,8 @@
 
 #define APP_FEATURE_NOT_SUPPORTED			BLE_GATT_STATUS_ATTERR_APP_BEGIN + 2        /**< Reply when unsupported features are requested. */
 
-#define SINE_TIMER_INTERVAL 				APP_TIMER_TICKS(100, APP_TIMER_PRESCALER) 	/**< 100 ms interval */
-#define COUNTER_TIMER_INTERVAL 				APP_TIMER_TICKS(100, APP_TIMER_PRESCALER) 	/**< 1000 ms interval */
+#define TEMP_TIMER_INTERVAL 				APP_TIMER_TICKS(1000, APP_TIMER_PRESCALER) 	/**< 1000 ms interval */
+#define ACC_TIMER_INTERVAL 					APP_TIMER_TICKS(10, APP_TIMER_PRESCALER) 	/**< 10 ms interval */
 
 ///SPI
 
@@ -81,6 +81,13 @@ typedef struct {
     uint8_t len;
 } spi_message_t;
 
+typedef struct {
+	float temp;
+	int16_t acc_x;
+	int16_t acc_y;
+	int16_t acc_z;
+} acq_data_t;
+
 static const nrf_drv_spi_t  spi = NRF_DRV_SPI_INSTANCE(0);                              /**< SPI instance. */
 static volatile bool        spi_transfer_done = true;                                   /**< Flag used to indicate that SPI instance completed the transfer. */
 
@@ -90,13 +97,12 @@ spi_message_t               *current_msg;
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID; 								/**< Connection Handle */
 
 static ble_acqs_t m_acqs;																/**< Aquisition Service Structure */
-//static uint16_t counter;
-static uint16_t degree;
+static acq_data_t m_acq_data = {0, 0, 0, 0};
 
 static nrf_ble_gatt_t m_gatt;                             								/**< Structure for gatt module */
 
-APP_TIMER_DEF(m_sine_timer_id);
-APP_TIMER_DEF(m_counter_timer_id);
+APP_TIMER_DEF(m_temp_timer_id);
+APP_TIMER_DEF(m_acc_timer_id);
 
 /**@brief Callback function for asserts in the SoftDevice.
  *
@@ -222,26 +228,16 @@ static void pm_evt_handler(pm_evt_t const * p_evt){
 	}
 }
 
-static void sine_timeout_handler(void* p_context){
+static void temp_timeout_handler(void* p_context){
 	
-	float sine = sine_value_get(degree);
-	sine_characteristic_notify(&m_acqs, &sine);
-	degree++;
+	temp_characteristic_notify(&m_acqs, &m_acq_data.temp);
 }
 
-static void counter_timeout_handler(void* p_context){
+static void acc_timeout_handler(void* p_context){
 
-	spi_message_t dev1_read = {
-        .rw_addr = (READ | PART_ID),
-        .len = 1
-    };
-
-	current_msg = &dev1_read;
-
-    memset(m_rx_buf, 0, BUFFER_SIZE);
-    spi_transfer_done = false;
-    APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_rx_buf, current_msg->len+1));
-	
+	accx_characteristic_notify(&m_acqs, &m_acq_data.acc_x);
+	accy_characteristic_notify(&m_acqs, &m_acq_data.acc_y);
+	accz_characteristic_notify(&m_acqs, &m_acq_data.acc_z);
 }
 
 /**@brief Function for the Timer initialization.
@@ -257,14 +253,14 @@ static void timers_init(void){
 
 	// Create timers.
 	
-	err_code = app_timer_create(&m_sine_timer_id,
+	err_code = app_timer_create(&m_temp_timer_id,
 								APP_TIMER_MODE_REPEATED,
-								sine_timeout_handler);
+								temp_timeout_handler);
 	APP_ERROR_CHECK(err_code);
 	
-	err_code = app_timer_create(&m_counter_timer_id,
+	err_code = app_timer_create(&m_acc_timer_id,
 								APP_TIMER_MODE_REPEATED,
-								counter_timeout_handler);
+								acc_timeout_handler);
 	APP_ERROR_CHECK(err_code);
 	
 }
@@ -330,13 +326,13 @@ static void application_timers_start(void){
 	
 	uint32_t err_code;
 
-	err_code = app_timer_start(m_sine_timer_id, SINE_TIMER_INTERVAL, NULL);
+	err_code = app_timer_start(m_temp_timer_id, TEMP_TIMER_INTERVAL, NULL);
 	APP_ERROR_CHECK(err_code);
-	NRF_LOG_INFO("Sine Timer 100ms started\r\n");
+	NRF_LOG_INFO("Temperature timer 1s started\r\n");
 	
-	err_code = app_timer_start(m_counter_timer_id, COUNTER_TIMER_INTERVAL, NULL);
+	err_code = app_timer_start(m_acc_timer_id, ACC_TIMER_INTERVAL, NULL);
 	APP_ERROR_CHECK(err_code);
-	NRF_LOG_INFO("Counter Timer 1s started\r\n");
+	NRF_LOG_INFO("Acceleration timer 10ms started\r\n");
 	
 }
 
@@ -685,12 +681,10 @@ void spi_event_handler(nrf_drv_spi_evt_t const * p_event){
 
     spi_transfer_done = true;
 
-	uint16_t value = m_rx_buf[1];
+	//uint16_t value = m_rx_buf[1];
 
-	counter_characteristic_notify(&m_acqs, &value);
-
-	//NRF_LOG_INFO("Transfer completed.\r\n");
-	//NRF_LOG_INFO("Received: 0x%x\r\n", m_rx_buf[1]);
+	NRF_LOG_INFO("Transfer completed.\r\n");
+	NRF_LOG_INFO("Received: 0x%x\r\n", m_rx_buf[1]);
 }
 
 /**
@@ -770,7 +764,6 @@ int main(void){
 	peer_manager_init();
 	gap_params_init();
 	advertising_init();
-	sine_table_init();
 	services_init();
 	conn_params_init();
 
@@ -778,8 +771,6 @@ int main(void){
 	NRF_LOG_INFO("Application initialized!\r\n");
 	application_timers_start();
 	advertising_start();
-
-	//adxl_welcome();
 
 	// Enter main loop.
 	while(1){
