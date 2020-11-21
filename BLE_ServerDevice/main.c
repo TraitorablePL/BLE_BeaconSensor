@@ -24,6 +24,7 @@
 
 #include "custom_board.h"
 #include "nrf_drv_spi.h"
+#include "nrf_drv_gpiote.h"
 
 #define NRF_LOG_MODULE_NAME "APP"
 #include "nrf_log.h"
@@ -62,7 +63,7 @@
 #define APP_FEATURE_NOT_SUPPORTED			BLE_GATT_STATUS_ATTERR_APP_BEGIN + 2        /**< Reply when unsupported features are requested. */
 
 #define TEMP_TIMER_INTERVAL 				APP_TIMER_TICKS(1000, APP_TIMER_PRESCALER) 	/**< 1000 ms interval */
-#define ACC_TIMER_INTERVAL 					APP_TIMER_TICKS(10, APP_TIMER_PRESCALER) 	/**< 10 ms interval */
+#define ACC_TIMER_INTERVAL 					APP_TIMER_TICKS(100, APP_TIMER_PRESCALER) 	/**< 100 ms interval */
 
 ///SPI
 
@@ -70,10 +71,32 @@
 
 #define WRITE                           (0<<7)
 #define READ                            (1<<7)
+#define MULTI_BYTE                      (1<<6)
 
-#define DEV_ID0							0x00
-#define DEV_ID1							0x01
-#define PART_ID							0x02
+////////////////////////////////////////////
+#define BW_RATE							0x2C
+//options
+#define LOW_POWER						0x10
+#define RATE_100HZ						0x0A
+#define RATE_12HZ						0x07
+////////////////////////////////////////////
+#define POWER_CTL						0x2D
+//options
+#define I2C_DISABLE						0x40
+#define MEASURE							0x08
+////////////////////////////////////////////
+#define INT_ENABLE						0x2E
+#define INT_SOURCE						0x30
+//options
+#define DATA_READY						0x80
+////////////////////////////////////////////
+#define DATA_FORMAT						0x31
+//options
+#define FULL_RES						0x08
+#define RANGE_2G						0x02
+////////////////////////////////////////////
+#define DATA_X0							0x32
+////////////////////////////////////////////
 
 typedef struct {
     uint8_t rw_addr;
@@ -90,6 +113,7 @@ typedef struct {
 
 static const nrf_drv_spi_t  spi = NRF_DRV_SPI_INSTANCE(0);                              /**< SPI instance. */
 static volatile bool        spi_transfer_done = true;                                   /**< Flag used to indicate that SPI instance completed the transfer. */
+static volatile bool        spi_acc_data = false;                                   	/**< Flag used to indicate that acc data is currently transmitted. */
 
 static uint8_t              m_rx_buf[BUFFER_SIZE];                                      /**< RX buffer. */
 spi_message_t               *current_msg;
@@ -655,22 +679,30 @@ static void power_manage(void){
 	APP_ERROR_CHECK(err_code);
 }
 
-/**
- * @brief Function for handling SPI Message timer timeout.
- */
-/*
-void spi_message_timeout_handler(void * p_context){
+void data_ready_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action){
+	
+	spi_message_t acc_data_msg = {.rw_addr = (READ | MULTI_BYTE | DATA_X0), .len = 6};
 
-    UNUSED_PARAMETER(p_context);
-    if(spi_transfer_done){
-        // Reset rx buffer and transfer done flag
-        memset(m_rx_buf, 0, BUFFER_SIZE);
-        spi_transfer_done = false;
-        data_read = true;
-        APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_rx_buf, current_msg->len+1));
-    }
+	if(spi_transfer_done){
+		spi_acc_data = true;
+		spi_transfer_done = false;
+		current_msg = &acc_data_msg;
+		APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_rx_buf, current_msg->len+1));
+    };
 }
-*/
+
+static void ext_int_init(void){
+
+	uint32_t err_code;
+
+    nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_LOTOHI(true);
+    in_config.pull = NRF_GPIO_PIN_PULLDOWN;
+
+    err_code = nrf_drv_gpiote_in_init(INT1_PIN, &in_config, data_ready_handler);
+    APP_ERROR_CHECK(err_code);
+
+    nrf_drv_gpiote_in_event_enable(INT1_PIN, true);
+}
 
 /**
  * @brief SPI user event handler.
@@ -679,18 +711,21 @@ void spi_message_timeout_handler(void * p_context){
 
 void spi_event_handler(nrf_drv_spi_evt_t const * p_event){
 
-    spi_transfer_done = true;
+	spi_transfer_done = true;
 
-	//uint16_t value = m_rx_buf[1];
+	if(spi_acc_data){
+        m_acq_data.acc_x = m_rx_buf[2]<<8 | m_rx_buf[1];
+        m_acq_data.acc_y = m_rx_buf[4]<<8 | m_rx_buf[3];
+        m_acq_data.acc_z = m_rx_buf[6]<<8 | m_rx_buf[5];
+	}
 
-	NRF_LOG_INFO("Transfer completed.\r\n");
-	NRF_LOG_INFO("Received: 0x%x\r\n", m_rx_buf[1]);
+	NRF_LOG_INFO("HANDLER\r\n");
 }
 
 /**
  * @brief Function for SPI bus initialization.
  */
-void spi_init(void){
+static void spi_init(void){
 
     nrf_drv_spi_config_t spi_config = NRF_DRV_SPI_DEFAULT_CONFIG;
     spi_config.ss_pin   = SPIM0_SS_PIN;
@@ -698,7 +733,7 @@ void spi_init(void){
     spi_config.mosi_pin = SPIM0_MOSI_PIN;
     spi_config.sck_pin  = SPIM0_SCK_PIN;
     spi_config.mode = NRF_DRV_SPI_MODE_3; //CPOL=1, CPHA=1
-    spi_config.frequency = NRF_DRV_SPI_FREQ_500K;
+    spi_config.frequency = NRF_DRV_SPI_FREQ_1M;
 
     uint32_t err_code = nrf_drv_spi_init(&spi, &spi_config, spi_event_handler);
     APP_ERROR_CHECK(err_code);
@@ -706,47 +741,28 @@ void spi_init(void){
 
 /**@brief Function for ADXL313 initialization.
  */
-/*
-void adxl_init(void){
 
-    spi_message_t dev1_read = {
-        .rw_addr = (WRITE | DEV_ID0),
-        .len = 1
-    };
+static void adxl_init(void){
 
-	current_msg = &dev1_read;
+	spi_message_t init_sequence[5] = {
+		{.rw_addr = (WRITE | DATA_FORMAT), 	.data[0] = (FULL_RES|RANGE_2G), 	.len = 1},
+		{.rw_addr = (WRITE | BW_RATE), 		.data[0] = (LOW_POWER|RATE_100HZ), 	.len = 1},
+		{.rw_addr = (WRITE | POWER_CTL), 	.data[0] = (I2C_DISABLE|MEASURE), 	.len = 1},
+		{.rw_addr = (WRITE | INT_SOURCE), 	.data[0] = DATA_READY, 				.len = 1},
+		{.rw_addr = (WRITE | INT_ENABLE), 	.data[0] = DATA_READY, 				.len = 1}
+	};
 
-    memset(m_rx_buf, 0, BUFFER_SIZE);
-    spi_transfer_done = false;
-    APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_rx_buf, current_msg->len+1));
+	for(uint8_t i = 0; i < 5; i++){
 
-    while(!spi_transfer_done){};
+		spi_transfer_done = false;
+		current_msg = init_sequence + i;
+		APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_rx_buf, current_msg->len+1));
+		while(!spi_transfer_done){};
+	}
 
-	spi_message_t dev2_read = {
-        .rw_addr = (WRITE | DEV_ID1),
-        .len = 1
-    };
-
-	current_msg = &dev2_read;
 	memset(m_rx_buf, 0, BUFFER_SIZE);
-    spi_transfer_done = false;
-    APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_rx_buf, current_msg->len+1));
-
-    while(!spi_transfer_done){};
-
-	spi_message_t part_read = {
-        .rw_addr = (WRITE | PART_ID),
-        .len = 1
-    };
-
-	current_msg = &part_read;
-	memset(m_rx_buf, 0, BUFFER_SIZE);
-    spi_transfer_done = false;
-    APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_rx_buf, current_msg->len+1));
-
-    while(!spi_transfer_done){};
 }
-*/
+
 /**@brief Function for application main entry.
  */
 int main(void){
@@ -766,14 +782,27 @@ int main(void){
 	advertising_init();
 	services_init();
 	conn_params_init();
+	//ext_int_init();
 
 	// Start execution.
 	NRF_LOG_INFO("Application initialized!\r\n");
 	application_timers_start();
 	advertising_start();
 
+	adxl_init();
+
+	spi_message_t acc_data_msg = {.rw_addr = (READ | MULTI_BYTE | DATA_X0), .len = 6};
+	spi_acc_data = true;
+	
 	// Enter main loop.
 	while(1){
+
+		memset(m_rx_buf, 0, BUFFER_SIZE);
+		spi_transfer_done = false;
+		current_msg = &acc_data_msg;
+		APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_rx_buf, current_msg->len+1));
+		while(!spi_transfer_done){};
+
 		if(NRF_LOG_PROCESS() == false){
 			power_manage();
 		}
