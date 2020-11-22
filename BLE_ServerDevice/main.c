@@ -679,8 +679,7 @@ static void power_manage(void){
 	APP_ERROR_CHECK(err_code);
 }
 
-void data_ready_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action){
-	
+static void read_acc_data(void){
 	spi_message_t acc_data_msg = {.rw_addr = (READ | MULTI_BYTE | DATA_X0), .len = 6};
 
 	if(spi_transfer_done){
@@ -689,6 +688,13 @@ void data_ready_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action){
 		current_msg = &acc_data_msg;
 		APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_rx_buf, current_msg->len+1));
     };
+}
+
+void data_ready_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action){
+
+	m_acq_data.temp = 0.5;
+
+	read_acc_data();
 }
 
 static void ext_int_init(void){
@@ -718,8 +724,6 @@ void spi_event_handler(nrf_drv_spi_evt_t const * p_event){
         m_acq_data.acc_y = m_rx_buf[4]<<8 | m_rx_buf[3];
         m_acq_data.acc_z = m_rx_buf[6]<<8 | m_rx_buf[5];
 	}
-
-	NRF_LOG_INFO("HANDLER\r\n");
 }
 
 /**
@@ -746,7 +750,7 @@ static void adxl_init(void){
 
 	spi_message_t init_sequence[5] = {
 		{.rw_addr = (WRITE | DATA_FORMAT), 	.data[0] = (FULL_RES|RANGE_2G), 	.len = 1},
-		{.rw_addr = (WRITE | BW_RATE), 		.data[0] = (LOW_POWER|RATE_100HZ), 	.len = 1},
+		{.rw_addr = (WRITE | BW_RATE), 		.data[0] = (LOW_POWER|RATE_12HZ), 	.len = 1},
 		{.rw_addr = (WRITE | POWER_CTL), 	.data[0] = (I2C_DISABLE|MEASURE), 	.len = 1},
 		{.rw_addr = (WRITE | INT_SOURCE), 	.data[0] = DATA_READY, 				.len = 1},
 		{.rw_addr = (WRITE | INT_ENABLE), 	.data[0] = DATA_READY, 				.len = 1}
@@ -782,7 +786,7 @@ int main(void){
 	advertising_init();
 	services_init();
 	conn_params_init();
-	//ext_int_init();
+	ext_int_init();
 
 	// Start execution.
 	NRF_LOG_INFO("Application initialized!\r\n");
@@ -793,15 +797,12 @@ int main(void){
 
 	spi_message_t acc_data_msg = {.rw_addr = (READ | MULTI_BYTE | DATA_X0), .len = 6};
 	spi_acc_data = true;
-	
+
+	//data read to trigger first interrupt DATA_READY
+	read_acc_data();
+
 	// Enter main loop.
 	while(1){
-
-		memset(m_rx_buf, 0, BUFFER_SIZE);
-		spi_transfer_done = false;
-		current_msg = &acc_data_msg;
-		APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_rx_buf, current_msg->len+1));
-		while(!spi_transfer_done){};
 
 		if(NRF_LOG_PROCESS() == false){
 			power_manage();
