@@ -24,46 +24,48 @@ static void gatt_error_handler(uint32_t nrf_error,
     }
 }
 
-static void on_notification(ble_acqs_t* p_ble_acqs, const ble_evt_t * p_ble_evt)
-{
-    // Check if the event is on the link for this instance.
-    /*
-    if (p_ble_hrs_c->conn_handle != p_ble_evt->evt.gattc_evt.conn_handle)
-    {
-        NRF_LOG_DEBUG("Received HVX on link 0x%x, not associated to this instance. Ignore.",
-                      p_ble_evt->evt.gattc_evt.conn_handle);
-        return;
+static void on_notification(ble_acqs_t* p_ble_acqs, const ble_evt_t * p_ble_evt){
+
+    const uint16_t hvx_handle = p_ble_evt->evt.gattc_evt.params.hvx.handle;
+    ble_gattc_evt_hvx_t const* notify = &p_ble_evt->evt.gattc_evt.params.hvx;
+    ble_acqs_evt_t ble_acqs_evt;
+
+    ble_acqs_evt.conn_handle = p_ble_acqs->conn_handle;
+    
+    // Acceleration X axis notification
+    if (hvx_handle == p_ble_acqs->handles.accx_handle) {
+        
+        ble_acqs_evt.evt_type    = BLE_ACQS_EVT_ACCX_NOTIFICATION;
+        ble_acqs_evt.params.acc = (int16_t)((notify->data[1]<<8)|(notify->data[0]));
+
+        p_ble_acqs->evt_handler(p_ble_acqs, &ble_acqs_evt);
     }
 
-    NRF_LOG_DEBUG("Received HVX on link 0x%x, hrm_handle 0x%x",
-    p_ble_evt->evt.gattc_evt.params.hvx.handle,
-    p_ble_hrs_c->peer_hrs_db.hrm_handle);
-    */
-
-    // Check if this is a heart rate notification.
-
-    if (p_ble_evt->evt.gattc_evt.params.hvx.handle == p_ble_acqs->handles.counter_handle) {
-        
-        ble_acqs_evt_t ble_acqs_evt;
-        ble_gattc_evt_hvx_t const* notify = &p_ble_evt->evt.gattc_evt.params.hvx;
-
-        ble_acqs_evt.evt_type    = BLE_ACQS_EVT_COUNTER_NOTIFICATION;
-        ble_acqs_evt.conn_handle = p_ble_acqs->conn_handle;
-        ble_acqs_evt.params.counter = (uint16_t)((notify->data[1]<<8)|(notify->data[0]));
+    // Acceleration Y axis notification
+    else if (hvx_handle == p_ble_acqs->handles.accy_handle) {
+    
+        ble_acqs_evt.evt_type    = BLE_ACQS_EVT_ACCY_NOTIFICATION;
+        ble_acqs_evt.params.acc = (int16_t)((notify->data[1]<<8)|(notify->data[0]));
         
         p_ble_acqs->evt_handler(p_ble_acqs, &ble_acqs_evt);
     }
 
-    if (p_ble_evt->evt.gattc_evt.params.hvx.handle == p_ble_acqs->handles.sine_handle) {
-        
-        ble_acqs_evt_t ble_acqs_evt;
-        ble_gattc_evt_hvx_t const* notify = &p_ble_evt->evt.gattc_evt.params.hvx;
+    // Acceleration Z axis notification
+    else if (hvx_handle == p_ble_acqs->handles.accz_handle) {
 
-        ble_acqs_evt.evt_type = BLE_ACQS_EVT_SINE_NOTIFICATION;
-        ble_acqs_evt.conn_handle = p_ble_acqs->conn_handle;
+        ble_acqs_evt.evt_type    = BLE_ACQS_EVT_ACCZ_NOTIFICATION;
+        ble_acqs_evt.params.acc = (int16_t)((notify->data[1]<<8)|(notify->data[0]));
+        
+        p_ble_acqs->evt_handler(p_ble_acqs, &ble_acqs_evt);
+    }
+
+    // Temperature notification
+    else if (hvx_handle == p_ble_acqs->handles.temp_handle) {
+
+        ble_acqs_evt.evt_type = BLE_ACQS_EVT_TEMP_NOTIFICATION;
         int receivedValue = (notify->data[0] & 0xFF) | ((notify->data[1] & 0xFF) << 8) | ((notify->data[2] & 0xFF) << 16) | ((notify->data[3] & 0xFF) << 24);
         float* floatValue = (float*)&receivedValue;
-        ble_acqs_evt.params.sine = *floatValue;
+        ble_acqs_evt.params.temp = *floatValue;
 
         p_ble_acqs->evt_handler(p_ble_acqs, &ble_acqs_evt);
     }
@@ -74,10 +76,14 @@ static void on_disconnected(ble_acqs_t* p_ble_acqs, const ble_evt_t * p_ble_evt)
     if (p_ble_acqs->conn_handle == p_ble_evt->evt.gap_evt.conn_handle) {
 
         p_ble_acqs->conn_handle                 = BLE_CONN_HANDLE_INVALID;
-        p_ble_acqs->handles.sine_cccd_handle    = BLE_GATT_HANDLE_INVALID;
-        p_ble_acqs->handles.sine_handle         = BLE_GATT_HANDLE_INVALID;
-        p_ble_acqs->handles.counter_cccd_handle = BLE_GATT_HANDLE_INVALID;
-        p_ble_acqs->handles.counter_handle      = BLE_GATT_HANDLE_INVALID;
+        p_ble_acqs->handles.temp_cccd_handle    = BLE_GATT_HANDLE_INVALID;
+        p_ble_acqs->handles.temp_handle         = BLE_GATT_HANDLE_INVALID;
+        p_ble_acqs->handles.accx_cccd_handle    = BLE_GATT_HANDLE_INVALID;
+        p_ble_acqs->handles.accx_handle         = BLE_GATT_HANDLE_INVALID;
+        p_ble_acqs->handles.accy_cccd_handle    = BLE_GATT_HANDLE_INVALID;
+        p_ble_acqs->handles.accy_handle         = BLE_GATT_HANDLE_INVALID;
+        p_ble_acqs->handles.accz_cccd_handle    = BLE_GATT_HANDLE_INVALID;
+        p_ble_acqs->handles.accz_handle         = BLE_GATT_HANDLE_INVALID;
     }
 }
 
@@ -88,7 +94,7 @@ void ble_acqs_on_db_disc_evt(ble_acqs_t* p_ble_acqs, ble_db_discovery_evt_t cons
 
     // Check if the ACQ Service was discovered.
     if (p_evt->evt_type == BLE_DB_DISCOVERY_COMPLETE &&
-        p_evt->params.discovered_db.srv_uuid.uuid == ACQ_UUID_SERVICE &&
+        p_evt->params.discovered_db.srv_uuid.uuid == BLE_ACQ_SERVICE &&
         p_evt->params.discovered_db.srv_uuid.type == p_ble_acqs->uuid_type){
 
         for (uint16_t i = 0; i < p_evt->params.discovered_db.char_count; i++) {
@@ -97,14 +103,24 @@ void ble_acqs_on_db_disc_evt(ble_acqs_t* p_ble_acqs, ble_db_discovery_evt_t cons
 			
             switch (p_char->characteristic.uuid.uuid){
 
-                case ACQ_UUID_SINE_CHAR:
-                    evt.params.handles.sine_handle = p_char->characteristic.handle_value;
-                    evt.params.handles.sine_cccd_handle = p_char->cccd_handle;
+                case BLE_TEMP_CHARACTERISTC:
+                    evt.params.handles.temp_handle = p_char->characteristic.handle_value;
+                    evt.params.handles.temp_cccd_handle = p_char->cccd_handle;
                     break;
 
-                case ACQ_UUID_COUNTER_CHAR:
-                    evt.params.handles.counter_handle = p_char->characteristic.handle_value;
-                    evt.params.handles.counter_cccd_handle = p_char->cccd_handle;
+                case BLE_ACCX_CHARACTERISTC:
+                    evt.params.handles.accx_handle = p_char->characteristic.handle_value;
+                    evt.params.handles.accx_cccd_handle = p_char->cccd_handle;
+                    break;
+
+                case BLE_ACCY_CHARACTERISTC:
+                    evt.params.handles.accy_handle = p_char->characteristic.handle_value;
+                    evt.params.handles.accy_cccd_handle = p_char->cccd_handle;
+                    break;
+
+                case BLE_ACCZ_CHARACTERISTC:
+                    evt.params.handles.accz_handle = p_char->characteristic.handle_value;
+                    evt.params.handles.accz_cccd_handle = p_char->cccd_handle;
                     break;
 
                 default:
@@ -116,13 +132,14 @@ void ble_acqs_on_db_disc_evt(ble_acqs_t* p_ble_acqs, ble_db_discovery_evt_t cons
         //If the instance was assigned prior to db_discovery, assign the db_handles
 		
         if (p_ble_acqs->conn_handle != BLE_CONN_HANDLE_INVALID){
+            /*
             if ((p_ble_acqs->handles.sine_handle           == BLE_GATT_HANDLE_INVALID)&&
                 (p_ble_acqs->handles.sine_cccd_handle      == BLE_GATT_HANDLE_INVALID)&&
                 (p_ble_acqs->handles.counter_handle        == BLE_GATT_HANDLE_INVALID)&&
                 (p_ble_acqs->handles.counter_cccd_handle   == BLE_GATT_HANDLE_INVALID)){
-                
-                p_ble_acqs->handles = evt.params.handles;
-            }
+            */
+            p_ble_acqs->handles = evt.params.handles;
+            //}
         }
         
         if (p_ble_acqs->evt_handler != NULL) {
@@ -133,8 +150,7 @@ void ble_acqs_on_db_disc_evt(ble_acqs_t* p_ble_acqs, ble_db_discovery_evt_t cons
     }
 }
 
-static uint32_t cccd_configure(ble_acqs_t * p_ble_acqs, notification_enable_t notifcation)
-{
+static uint32_t cccd_configure(ble_acqs_t * p_ble_acqs, notification_enable_t notifcation) {
 
     nrf_ble_gq_req_t acqs_req;
     uint8_t          cccd[BLE_CCCD_VALUE_LEN];
@@ -146,12 +162,20 @@ static uint32_t cccd_configure(ble_acqs_t * p_ble_acqs, notification_enable_t no
     memset(&acqs_req, 0, sizeof(acqs_req));
     
     switch (notifcation){
-        case SINE_NOTIFICATION:
-            acqs_req.params.gattc_write.handle = p_ble_acqs->handles.sine_cccd_handle;
+        case TEMP_NOTIFICATION:
+            acqs_req.params.gattc_write.handle = p_ble_acqs->handles.temp_cccd_handle;
             break;
 
-        case COUNTER_NOTIFICATION:
-            acqs_req.params.gattc_write.handle = p_ble_acqs->handles.counter_cccd_handle;
+        case ACCX_NOTIFICATION:
+            acqs_req.params.gattc_write.handle = p_ble_acqs->handles.accx_cccd_handle;
+            break;
+
+        case ACCY_NOTIFICATION:
+            acqs_req.params.gattc_write.handle = p_ble_acqs->handles.accy_cccd_handle;
+            break;
+
+        case ACCZ_NOTIFICATION:
+            acqs_req.params.gattc_write.handle = p_ble_acqs->handles.accz_cccd_handle;
             break;
     }
 
@@ -174,7 +198,7 @@ uint32_t ble_acqs_init(ble_acqs_t* p_ble_acqs, ble_acqs_init_t* p_ble_acqs_init)
 
     uint32_t      err_code;
     ble_uuid_t    acqs_uuid;
-    ble_uuid128_t acqs_base_uuid = ACQ_UUID_BASE;
+    ble_uuid128_t acqs_base_uuid = BLE_ACQ_BASE_UUID;
 
     VERIFY_PARAM_NOT_NULL(p_ble_acqs);
     VERIFY_PARAM_NOT_NULL(p_ble_acqs_init);
@@ -184,13 +208,17 @@ uint32_t ble_acqs_init(ble_acqs_t* p_ble_acqs, ble_acqs_init_t* p_ble_acqs_init)
     VERIFY_SUCCESS(err_code);
 
     acqs_uuid.type = p_ble_acqs->uuid_type;
-    acqs_uuid.uuid = ACQ_UUID_SERVICE;
+    acqs_uuid.uuid = BLE_ACQ_SERVICE;
 
     p_ble_acqs->conn_handle                 = BLE_CONN_HANDLE_INVALID;
-    p_ble_acqs->handles.sine_cccd_handle    = BLE_GATT_HANDLE_INVALID;
-    p_ble_acqs->handles.sine_handle         = BLE_GATT_HANDLE_INVALID;
-    p_ble_acqs->handles.counter_cccd_handle = BLE_GATT_HANDLE_INVALID;
-    p_ble_acqs->handles.counter_handle      = BLE_GATT_HANDLE_INVALID;
+    p_ble_acqs->handles.temp_cccd_handle    = BLE_GATT_HANDLE_INVALID;
+    p_ble_acqs->handles.temp_handle         = BLE_GATT_HANDLE_INVALID;
+    p_ble_acqs->handles.accx_cccd_handle    = BLE_GATT_HANDLE_INVALID;
+    p_ble_acqs->handles.accx_handle         = BLE_GATT_HANDLE_INVALID;
+    p_ble_acqs->handles.accy_cccd_handle    = BLE_GATT_HANDLE_INVALID;
+    p_ble_acqs->handles.accy_handle         = BLE_GATT_HANDLE_INVALID;
+    p_ble_acqs->handles.accz_cccd_handle    = BLE_GATT_HANDLE_INVALID;
+    p_ble_acqs->handles.accz_handle         = BLE_GATT_HANDLE_INVALID;
     
     p_ble_acqs->evt_handler     = p_ble_acqs_init->evt_handler;
     p_ble_acqs->p_gatt_queue    = p_ble_acqs_init->p_gatt_queue;
@@ -227,26 +255,48 @@ void ble_acqs_on_ble_evt(ble_evt_t const* p_ble_evt, void* p_context){
     }
 }
 
-uint32_t ble_acqs_sine_notif_enable(ble_acqs_t* p_ble_acqs)
-{
+uint32_t ble_acqs_temp_notif_enable(ble_acqs_t* p_ble_acqs) {
+
     VERIFY_PARAM_NOT_NULL(p_ble_acqs);
 
     if (p_ble_acqs->conn_handle == BLE_CONN_HANDLE_INVALID){
         return NRF_ERROR_INVALID_STATE;
     }
 
-    return cccd_configure(p_ble_acqs, SINE_NOTIFICATION);
+    return cccd_configure(p_ble_acqs, TEMP_NOTIFICATION);
 }
 
-uint32_t ble_acqs_counter_notif_enable(ble_acqs_t* p_ble_acqs)
-{
+uint32_t ble_acqs_accx_notif_enable(ble_acqs_t* p_ble_acqs) {
+
     VERIFY_PARAM_NOT_NULL(p_ble_acqs);
 
     if (p_ble_acqs->conn_handle == BLE_CONN_HANDLE_INVALID){
         return NRF_ERROR_INVALID_STATE;
     }
 
-    return cccd_configure(p_ble_acqs, COUNTER_NOTIFICATION);
+    return cccd_configure(p_ble_acqs, ACCX_NOTIFICATION);
+}
+
+uint32_t ble_acqs_accy_notif_enable(ble_acqs_t* p_ble_acqs) {
+
+    VERIFY_PARAM_NOT_NULL(p_ble_acqs);
+
+    if (p_ble_acqs->conn_handle == BLE_CONN_HANDLE_INVALID){
+        return NRF_ERROR_INVALID_STATE;
+    }
+
+    return cccd_configure(p_ble_acqs, ACCY_NOTIFICATION);
+}
+
+uint32_t ble_acqs_accz_notif_enable(ble_acqs_t* p_ble_acqs) {
+
+    VERIFY_PARAM_NOT_NULL(p_ble_acqs);
+
+    if (p_ble_acqs->conn_handle == BLE_CONN_HANDLE_INVALID){
+        return NRF_ERROR_INVALID_STATE;
+    }
+
+    return cccd_configure(p_ble_acqs, ACCZ_NOTIFICATION);
 }
 
 uint32_t ble_acqs_handles_assign(ble_acqs_t                 *p_ble_acqs,

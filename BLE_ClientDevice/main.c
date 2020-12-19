@@ -442,20 +442,26 @@ static void acqs_evt_handler(ble_acqs_t * p_acqs, ble_acqs_evt_t * p_acqs_evt) {
             APP_ERROR_CHECK(err_code);
 
             //ACQ service discovered. Enable notifications.
-            err_code = ble_acqs_sine_notif_enable(p_acqs);
+            err_code = ble_acqs_temp_notif_enable(p_acqs);
             APP_ERROR_CHECK(err_code);
 
-            err_code = ble_acqs_counter_notif_enable(p_acqs);
+            err_code = ble_acqs_accx_notif_enable(p_acqs);
+            APP_ERROR_CHECK(err_code);
+
+            err_code = ble_acqs_accy_notif_enable(p_acqs);
+            APP_ERROR_CHECK(err_code);
+
+            err_code = ble_acqs_accz_notif_enable(p_acqs);
             APP_ERROR_CHECK(err_code);
 
         }   break;
 
-        case BLE_ACQS_EVT_SINE_NOTIFICATION:
+        case BLE_ACQS_EVT_TEMP_NOTIFICATION:
         {
-            NRF_LOG_INFO("Sine value = "NRF_LOG_FLOAT_MARKER, NRF_LOG_FLOAT(p_acqs_evt->params.sine));
+            NRF_LOG_INFO("Temperature = "NRF_LOG_FLOAT_MARKER, NRF_LOG_FLOAT(p_acqs_evt->params.temp));
 
 #ifdef BOARD_PCA10059
-            uint32_t size = sprintf(m_tx_buffer, "Sine value = "NRF_LOG_FLOAT_MARKER"\r\n", NRF_LOG_FLOAT(p_acqs_evt->params.sine));
+            uint32_t size = sprintf(m_tx_buffer, "Temperature = "NRF_LOG_FLOAT_MARKER"\r\n", NRF_LOG_FLOAT(p_acqs_evt->params.temp));
             app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
 
             if(m_tx_buffer_free){
@@ -466,12 +472,44 @@ static void acqs_evt_handler(ble_acqs_t * p_acqs, ble_acqs_evt_t * p_acqs_evt) {
 #endif
         }   break;
 
-        case BLE_ACQS_EVT_COUNTER_NOTIFICATION:
+        case BLE_ACQS_EVT_ACCX_NOTIFICATION:
         {
-            NRF_LOG_INFO("Counter value = %d", p_acqs_evt->params.counter);
+            NRF_LOG_INFO("Acceleration X = %d", p_acqs_evt->params.acc);
             
 #ifdef BOARD_PCA10059
-            uint32_t size = sprintf(m_tx_buffer, "Counter = %d\r\n", p_acqs_evt->params.counter);
+            uint32_t size = sprintf(m_tx_buffer, "Acceleration X = %d\r\n", p_acqs_evt->params.acc);
+            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
+
+            if(m_tx_buffer_free){
+                app_fifo_get(&m_tx_fifo,m_tx_char);
+                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
+                m_tx_buffer_free = false;
+            }
+#endif
+        }   break;
+
+        case BLE_ACQS_EVT_ACCY_NOTIFICATION:
+        {
+            NRF_LOG_INFO("Acceleration Y = %d", p_acqs_evt->params.acc);
+            
+#ifdef BOARD_PCA10059
+            uint32_t size = sprintf(m_tx_buffer, "Acceleration Y = %d\r\n", p_acqs_evt->params.acc);
+            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
+
+            if(m_tx_buffer_free){
+                app_fifo_get(&m_tx_fifo,m_tx_char);
+                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
+                m_tx_buffer_free = false;
+            }
+#endif
+        }   break;
+
+        case BLE_ACQS_EVT_ACCZ_NOTIFICATION:
+        {
+            NRF_LOG_INFO("Acceleration Z = %d", p_acqs_evt->params.acc);
+            
+#ifdef BOARD_PCA10059
+            uint32_t size = sprintf(m_tx_buffer, "Acceleration Z = %d\r\n", p_acqs_evt->params.acc);
             app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
 
             if(m_tx_buffer_free){
