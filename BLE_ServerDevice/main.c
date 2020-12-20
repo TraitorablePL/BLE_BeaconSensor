@@ -24,6 +24,7 @@
 
 #include "custom_board.h"
 #include "nrf_drv_spi.h"
+#include "nrf_drv_twi.h"
 #include "nrf_drv_gpiote.h"
 
 #define NRF_LOG_MODULE_NAME "APP"
@@ -34,7 +35,7 @@
 
 #define DEVICE_NAME                      	"ACQ Beacon"                                /**< Name of device. Will be included in the advertising data. */
 #define MANUFACTURER_NAME                	"AGH MTM"                       			/**< Manufacturer. Will be passed to Device Information Service. */
-#define APP_ADV_INTERVAL                 	160                                         /**< The advertising interval (in units of 0.625 ms. This value corresponds to 100 ms). */
+#define APP_ADV_INTERVAL                 	MSEC_TO_UNITS(100, UNIT_0_625_MS)           /**< The advertising interval (in units of 0.625 ms. This value corresponds to 100 ms). */
 
 #define APP_TIMER_PRESCALER              	0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE          	4                                           /**< Size of timer operation queues. */
@@ -65,6 +66,11 @@
 #define TEMP_TIMER_INTERVAL 				APP_TIMER_TICKS(1000, APP_TIMER_PRESCALER) 	/**< 1000 ms interval */
 #define ACC_TIMER_INTERVAL 					APP_TIMER_TICKS(100, APP_TIMER_PRESCALER) 	/**< 100 ms interval */
 
+///TWI
+
+#define SLAVE_ADDR						0x40
+#define READ_CMD						0xF3
+
 ///SPI
 
 #define BUFFER_SIZE                     16
@@ -93,7 +99,10 @@
 #define DATA_FORMAT						0x31
 //options
 #define FULL_RES						0x08
+#define RANGE_1G						0x01
 #define RANGE_2G						0x02
+#define RANGE_4G						0x03
+
 ////////////////////////////////////////////
 #define DATA_X0							0x32
 ////////////////////////////////////////////
@@ -111,11 +120,15 @@ typedef struct {
 	int16_t acc_z;
 } acq_data_t;
 
+static const nrf_drv_twi_t 	twi = NRF_DRV_TWI_INSTANCE(1);								/**< TWI instance. */
+static volatile bool 		twi_transfer_done = true;
+static uint8_t 				m_twi_rx_buffer[BUFFER_SIZE];
+
 static const nrf_drv_spi_t  spi = NRF_DRV_SPI_INSTANCE(0);                              /**< SPI instance. */
 static volatile bool        spi_transfer_done = true;                                   /**< Flag used to indicate that SPI instance completed the transfer. */
 static volatile bool        spi_acc_data = false;                                   	/**< Flag used to indicate that acc data is currently transmitted. */
 
-static uint8_t              m_rx_buf[BUFFER_SIZE];                                      /**< RX buffer. */
+static uint8_t              m_spi_rx_buffer[BUFFER_SIZE];                               /**< RX buffer. */
 spi_message_t               *current_msg;
 
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID; 								/**< Connection Handle */
@@ -127,6 +140,8 @@ static nrf_ble_gatt_t m_gatt;                             								/**< Structure
 
 APP_TIMER_DEF(m_temp_timer_id);
 APP_TIMER_DEF(m_acc_timer_id);
+
+static void read_temperature();
 
 /**@brief Callback function for asserts in the SoftDevice.
  *
@@ -254,6 +269,7 @@ static void pm_evt_handler(pm_evt_t const * p_evt){
 
 static void temp_timeout_handler(void* p_context){
 	
+	read_temperature();
 	temp_characteristic_notify(&m_acqs, &m_acq_data.temp);
 }
 
@@ -421,7 +437,6 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt){
 			NRF_LOG_INFO("Fast Advertising\r\n");
 			break;
 
-		case BLE_ADV_EVT_IDLE:
 		default:
 			break;
 	}
@@ -686,14 +701,11 @@ static void read_acc_data(void){
 		spi_acc_data = true;
 		spi_transfer_done = false;
 		current_msg = &acc_data_msg;
-		APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_rx_buf, current_msg->len+1));
+		APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_spi_rx_buffer, current_msg->len+1));
     };
 }
 
 void data_ready_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action){
-
-	m_acq_data.temp = 0.5;
-
 	read_acc_data();
 }
 
@@ -720,9 +732,9 @@ void spi_event_handler(nrf_drv_spi_evt_t const * p_event){
 	spi_transfer_done = true;
 
 	if(spi_acc_data){
-        m_acq_data.acc_x = m_rx_buf[2]<<8 | m_rx_buf[1];
-        m_acq_data.acc_y = m_rx_buf[4]<<8 | m_rx_buf[3];
-        m_acq_data.acc_z = m_rx_buf[6]<<8 | m_rx_buf[5];
+        m_acq_data.acc_x = m_spi_rx_buffer[2]<<8 | m_spi_rx_buffer[1];
+        m_acq_data.acc_y = m_spi_rx_buffer[4]<<8 | m_spi_rx_buffer[3];
+        m_acq_data.acc_z = m_spi_rx_buffer[6]<<8 | m_spi_rx_buffer[5];
 	}
 }
 
@@ -749,7 +761,7 @@ static void spi_init(void){
 static void adxl_init(void){
 
 	spi_message_t init_sequence[5] = {
-		{.rw_addr = (WRITE | DATA_FORMAT), 	.data[0] = (FULL_RES|RANGE_2G), 	.len = 1},
+		{.rw_addr = (WRITE | DATA_FORMAT), 	.data[0] = (FULL_RES|RANGE_4G), 	.len = 1},
 		{.rw_addr = (WRITE | BW_RATE), 		.data[0] = (LOW_POWER|RATE_12HZ), 	.len = 1},
 		{.rw_addr = (WRITE | POWER_CTL), 	.data[0] = (I2C_DISABLE|MEASURE), 	.len = 1},
 		{.rw_addr = (WRITE | INT_SOURCE), 	.data[0] = DATA_READY, 				.len = 1},
@@ -760,11 +772,79 @@ static void adxl_init(void){
 
 		spi_transfer_done = false;
 		current_msg = init_sequence + i;
-		APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_rx_buf, current_msg->len+1));
+		APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_spi_rx_buffer, current_msg->len+1));
 		while(!spi_transfer_done){};
 	}
 
-	memset(m_rx_buf, 0, BUFFER_SIZE);
+	memset(m_spi_rx_buffer, 0, BUFFER_SIZE);
+}
+
+/**
+ * @brief TWI events handler.
+ */
+void twi_handler(nrf_drv_twi_evt_t const * p_event, void * p_context){
+
+    switch (p_event->type) {
+	
+        case NRF_DRV_TWI_EVT_DONE:
+			switch(p_event->xfer_desc.type) {
+
+				case NRF_DRV_TWI_XFER_TX: ///< TX transfer.
+					memset(m_twi_rx_buffer, 0, BUFFER_SIZE);
+					ret_code_t err_code = nrf_drv_twi_rx(&twi, SLAVE_ADDR, m_twi_rx_buffer, 2);
+					APP_ERROR_CHECK(err_code);
+					break;
+
+				case NRF_DRV_TWI_XFER_TXRX: ///< TX transfer followed by RX transfer with repeated start.
+				case NRF_DRV_TWI_XFER_RX: ///< RX transfer.
+					twi_transfer_done = true;
+					uint16_t temp_code = m_twi_rx_buffer[0]<<8 | m_twi_rx_buffer[1];
+					m_acq_data.temp = ((temp_code * 175.72)/65536) - 46.85;
+					break;
+				
+				default:
+					break;
+			}
+			break;
+
+		case NRF_DRV_TWI_EVT_ADDRESS_NACK:
+			memset(m_twi_rx_buffer, 0, BUFFER_SIZE);
+			ret_code_t err_code = nrf_drv_twi_rx(&twi, SLAVE_ADDR, m_twi_rx_buffer, 2);
+			APP_ERROR_CHECK(err_code);
+			break;
+
+        default:
+            break;
+    }
+}
+
+void twi_init (void) {
+    ret_code_t err_code;
+
+    const nrf_drv_twi_config_t twi_config = {
+       .scl                = SCL_PIN,
+       .sda                = SDA_PIN,
+       .frequency          = NRF_TWI_FREQ_100K,
+       .interrupt_priority = TWI_DEFAULT_CONFIG_IRQ_PRIORITY,
+       .clear_bus_init     = false
+    };
+
+    err_code = nrf_drv_twi_init(&twi, &twi_config, twi_handler, NULL);
+    APP_ERROR_CHECK(err_code);
+
+    nrf_drv_twi_enable(&twi);
+}
+
+/**
+ * @brief Function for reading data from temperature sensor.
+ */
+static void read_temperature(){
+	if(twi_transfer_done){
+		twi_transfer_done = false;
+		m_twi_rx_buffer[0] = READ_CMD;
+		ret_code_t err_code = nrf_drv_twi_tx(&twi, SLAVE_ADDR, m_twi_rx_buffer, 1, true);
+		APP_ERROR_CHECK(err_code);
+	}
 }
 
 /**@brief Function for application main entry.
@@ -779,6 +859,7 @@ int main(void){
 
 	timers_init();
 	spi_init();
+	twi_init();
 	buttons_leds_init();
 	ble_stack_init();
 	peer_manager_init();
@@ -794,9 +875,6 @@ int main(void){
 	advertising_start();
 
 	adxl_init();
-
-	spi_message_t acc_data_msg = {.rw_addr = (READ | MULTI_BYTE | DATA_X0), .len = 6};
-	spi_acc_data = true;
 
 	//data read to trigger first interrupt DATA_READY
 	read_acc_data();
