@@ -35,13 +35,13 @@
 
 #define DEVICE_NAME                      	"ACQ Beacon"                                /**< Name of device. Will be included in the advertising data. */
 #define MANUFACTURER_NAME                	"AGH MTM"                       			/**< Manufacturer. Will be passed to Device Information Service. */
-#define APP_ADV_INTERVAL                 	MSEC_TO_UNITS(100, UNIT_0_625_MS)           /**< The advertising interval (in units of 0.625 ms. This value corresponds to 100 ms). */
+#define APP_ADV_INTERVAL                 	MSEC_TO_UNITS(1000, UNIT_0_625_MS)           /**< The advertising interval (in units of 0.625 ms. This value corresponds to 100 ms). */
 
 #define APP_TIMER_PRESCALER              	0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE          	4                                           /**< Size of timer operation queues. */
 
-#define MIN_CONN_INTERVAL                	MSEC_TO_UNITS(180, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.4 seconds). */
-#define MAX_CONN_INTERVAL                	MSEC_TO_UNITS(220, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (0.65 second). */
+#define MIN_CONN_INTERVAL                	MSEC_TO_UNITS(50, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.4 seconds). */
+#define MAX_CONN_INTERVAL                	MSEC_TO_UNITS(70, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (0.65 second). */
 
 #define SLAVE_LATENCY                    	0                                           /**< Slave latency. */
 #define CONN_SUP_TIMEOUT                 	MSEC_TO_UNITS(4000, UNIT_10_MS)             /**< Connection supervisory timeout (4 seconds). */
