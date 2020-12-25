@@ -7,51 +7,65 @@
 #include "app_error.h"
 #include "nrf_log.h"
 
+static void toogle_temp_notify(ble_acqs_t* p_acqs){
+	if(p_acqs->temp_notification == TEMP_NOTIFICATION_DISABLED){
+		p_acqs->temp_notification = TEMP_NOTIFICATION_ENABLED;
+		NRF_LOG_INFO("Temperature notification enabled\r\n");
+	}
+	else{
+		p_acqs->temp_notification = TEMP_NOTIFICATION_DISABLED;
+		NRF_LOG_INFO("Temperature notification disabled\r\n");
+	}
+}
+
+static void toogle_accx_notify(ble_acqs_t* p_acqs){
+	if(p_acqs->accx_notification == ACCX_NOTIFICATION_DISABLED){
+		p_acqs->accx_notification = ACCX_NOTIFICATION_ENABLED;
+		NRF_LOG_INFO("ACC X notification enabled\r\n");
+	}
+	else{
+		p_acqs->accx_notification = ACCX_NOTIFICATION_DISABLED;
+		NRF_LOG_INFO("ACC X notification disabled\r\n");
+	}
+}
+
+static void toogle_accy_notify(ble_acqs_t* p_acqs){
+	if(p_acqs->accy_notification == ACCY_NOTIFICATION_DISABLED){
+		p_acqs->accy_notification = ACCY_NOTIFICATION_ENABLED;
+		NRF_LOG_INFO("ACC Y notification enabled\r\n");
+	}
+	else{
+		p_acqs->accy_notification = ACCY_NOTIFICATION_DISABLED;
+		NRF_LOG_INFO("ACC Y notification disabled\r\n");
+	}
+}
+
+static void toogle_accz_notify(ble_acqs_t* p_acqs){
+	if(p_acqs->accz_notification == ACCZ_NOTIFICATION_DISABLED){
+		p_acqs->accz_notification = ACCZ_NOTIFICATION_ENABLED;
+		NRF_LOG_INFO("ACC Z notification enabled\r\n");
+	}
+	else{
+		p_acqs->accz_notification = ACCZ_NOTIFICATION_DISABLED;
+		NRF_LOG_INFO("ACC Z notification disabled\r\n");
+	}
+}
+
 static void on_write(ble_evt_t* p_ble_evt, ble_acqs_t* p_acqs){
 
 	ble_gatts_evt_write_t* p_evt_write = &p_ble_evt->evt.gatts_evt.params.write;
 
-	if((p_evt_write->handle == p_acqs->temp_handles.cccd_handle) && (p_evt_write->len == 2)){
-		
-		if(p_acqs->temp_notification == TEMP_NOTIFICATION_DISABLED){
-			p_acqs->temp_notification = TEMP_NOTIFICATION_ENABLED;
-			NRF_LOG_INFO("Temperature notification enabled\r\n");
-		}
-		else{
-			p_acqs->temp_notification = TEMP_NOTIFICATION_DISABLED;
-			NRF_LOG_INFO("Temperature notification disabled\r\n");
-		}
-	}
-	else if((p_evt_write->handle == p_acqs->accx_handles.cccd_handle) && (p_evt_write->len == 2)){
-		if(p_acqs->accx_notification == ACCX_NOTIFICATION_DISABLED){
-			p_acqs->accx_notification = ACCX_NOTIFICATION_ENABLED;
-			NRF_LOG_INFO("ACC X notification enabled\r\n");
-		}
-		else{
-			p_acqs->accx_notification = ACCX_NOTIFICATION_DISABLED;
-			NRF_LOG_INFO("ACC X notification disabled\r\n");
-		}
-	}
-	else if((p_evt_write->handle == p_acqs->accy_handles.cccd_handle) && (p_evt_write->len == 2)){
-		if(p_acqs->accy_notification == ACCY_NOTIFICATION_DISABLED){
-			p_acqs->accy_notification = ACCY_NOTIFICATION_ENABLED;
-			NRF_LOG_INFO("ACC Y notification enabled\r\n");
-		}
-		else{
-			p_acqs->accy_notification = ACCY_NOTIFICATION_DISABLED;
-			NRF_LOG_INFO("ACC Y notification disabled\r\n");
-		}
-	}
-	else if((p_evt_write->handle == p_acqs->accz_handles.cccd_handle) && (p_evt_write->len == 2)){
-		if(p_acqs->accz_notification == ACCZ_NOTIFICATION_DISABLED){
-			p_acqs->accz_notification = ACCZ_NOTIFICATION_ENABLED;
-			NRF_LOG_INFO("ACC Z notification enabled\r\n");
-		}
-		else{
-			p_acqs->accz_notification = ACCZ_NOTIFICATION_DISABLED;
-			NRF_LOG_INFO("ACC Z notification disabled\r\n");
-		}
-	}
+	if((p_evt_write->handle == p_acqs->temp_handles.cccd_handle) && (p_evt_write->len == 2))
+		toogle_temp_notify(p_acqs);
+
+	else if((p_evt_write->handle == p_acqs->accx_handles.cccd_handle) && (p_evt_write->len == 2))
+		toogle_accx_notify(p_acqs);
+
+	else if((p_evt_write->handle == p_acqs->accy_handles.cccd_handle) && (p_evt_write->len == 2))
+		toogle_accy_notify(p_acqs);
+
+	else if((p_evt_write->handle == p_acqs->accz_handles.cccd_handle) && (p_evt_write->len == 2))
+		toogle_accz_notify(p_acqs);
 }
 
 void ble_acqs_on_ble_evt(ble_evt_t const* p_ble_evt, ble_acqs_t* p_acqs){
