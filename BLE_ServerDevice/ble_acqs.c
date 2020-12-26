@@ -167,14 +167,14 @@ void temp_characteristic_notify(ble_acqs_t* p_acqs, float* temp){
 	if ((p_acqs->conn_handle != BLE_CONN_HANDLE_INVALID) &&
 		(p_acqs->temp_notification == TEMP_NOTIFICATION_ENABLED)){
 		
-		uint16_t len = 4;
+		uint16_t temp_len = sizeof(float);
 		ble_gatts_hvx_params_t hvx_params;
 		memset(&hvx_params, 0, sizeof(hvx_params));
 
 		hvx_params.handle = p_acqs->temp_handles.value_handle;
 		hvx_params.type = BLE_GATT_HVX_NOTIFICATION;
 		hvx_params.offset = 0;
-		hvx_params.p_len = &len;
+		hvx_params.p_len = &temp_len;
 		hvx_params.p_data = (uint8_t*)temp;  
 
 		sd_ble_gatts_hvx(p_acqs->conn_handle, &hvx_params);
@@ -248,14 +248,14 @@ void accx_characteristic_notify(ble_acqs_t* p_acqs, int16_t* value){
 	if ((p_acqs->conn_handle != BLE_CONN_HANDLE_INVALID) &&
 		(p_acqs->accx_notification == ACCX_NOTIFICATION_ENABLED)){
 		
-		uint16_t len = 2;
+		uint16_t acc_len = sizeof(int16_t);
 		ble_gatts_hvx_params_t hvx_params;
 		memset(&hvx_params, 0, sizeof(hvx_params));
 				
 		hvx_params.handle = p_acqs->accx_handles.value_handle;
 		hvx_params.type = BLE_GATT_HVX_NOTIFICATION;
 		hvx_params.offset = 0;
-		hvx_params.p_len = &len;
+		hvx_params.p_len = &acc_len;
 		hvx_params.p_data = (uint8_t*)value;
 
 		sd_ble_gatts_hvx(p_acqs->conn_handle, &hvx_params);
@@ -329,14 +329,14 @@ void accy_characteristic_notify(ble_acqs_t* p_acqs, int16_t* value){
 	if ((p_acqs->conn_handle != BLE_CONN_HANDLE_INVALID) &&
 		(p_acqs->accy_notification == ACCY_NOTIFICATION_ENABLED)){
 		
-		uint16_t len = 2;
+		uint16_t acc_len = sizeof(int16_t);
 		ble_gatts_hvx_params_t hvx_params;
 		memset(&hvx_params, 0, sizeof(hvx_params));
 				
 		hvx_params.handle = p_acqs->accy_handles.value_handle;
 		hvx_params.type = BLE_GATT_HVX_NOTIFICATION;
 		hvx_params.offset = 0;
-		hvx_params.p_len = &len;
+		hvx_params.p_len = &acc_len;
 		hvx_params.p_data = (uint8_t*)value;
 
 		sd_ble_gatts_hvx(p_acqs->conn_handle, &hvx_params);
@@ -410,14 +410,14 @@ void accz_characteristic_notify(ble_acqs_t* p_acqs, int16_t* value){
 	if ((p_acqs->conn_handle != BLE_CONN_HANDLE_INVALID) &&
 		(p_acqs->accz_notification == ACCZ_NOTIFICATION_ENABLED)){
 		
-		uint16_t len = 2;
+		uint16_t acc_len = sizeof(int16_t);
 		ble_gatts_hvx_params_t hvx_params;
 		memset(&hvx_params, 0, sizeof(hvx_params));
 				
 		hvx_params.handle = p_acqs->accz_handles.value_handle;
 		hvx_params.type = BLE_GATT_HVX_NOTIFICATION;
 		hvx_params.offset = 0;
-		hvx_params.p_len = &len;
+		hvx_params.p_len = &acc_len;
 		hvx_params.p_data = (uint8_t*)value;
 
 		sd_ble_gatts_hvx(p_acqs->conn_handle, &hvx_params);

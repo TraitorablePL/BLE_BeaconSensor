@@ -126,7 +126,6 @@ static uint8_t 				m_twi_rx_buffer[BUFFER_SIZE];
 
 static const nrf_drv_spi_t  spi = NRF_DRV_SPI_INSTANCE(0);                              /**< SPI instance. */
 static volatile bool        spi_transfer_done = true;                                   /**< Flag used to indicate that SPI instance completed the transfer. */
-static volatile bool        spi_acc_data = false;                                   	/**< Flag used to indicate that acc data is currently transmitted. */
 
 static uint8_t              m_spi_rx_buffer[BUFFER_SIZE];                               /**< RX buffer. */
 spi_message_t               *current_msg;
@@ -138,8 +137,8 @@ static acq_data_t m_acq_data = {0, 0, 0, 0};
 
 static nrf_ble_gatt_t m_gatt;                             								/**< Structure for gatt module */
 
-APP_TIMER_DEF(m_temp_timer_id);
-APP_TIMER_DEF(m_acc_timer_id);
+APP_TIMER_DEF(m_temp_timer);
+APP_TIMER_DEF(m_acc_timer);
 
 static void read_temperature();
 
@@ -293,12 +292,12 @@ static void timers_init(void){
 
 	// Create timers.
 	
-	err_code = app_timer_create(&m_temp_timer_id,
+	err_code = app_timer_create(&m_temp_timer,
 								APP_TIMER_MODE_REPEATED,
 								temp_timeout_handler);
 	APP_ERROR_CHECK(err_code);
 	
-	err_code = app_timer_create(&m_acc_timer_id,
+	err_code = app_timer_create(&m_acc_timer,
 								APP_TIMER_MODE_REPEATED,
 								acc_timeout_handler);
 	APP_ERROR_CHECK(err_code);
@@ -366,11 +365,11 @@ static void application_timers_start(void){
 	
 	uint32_t err_code;
 
-	err_code = app_timer_start(m_temp_timer_id, TEMP_TIMER_INTERVAL, NULL);
+	err_code = app_timer_start(m_temp_timer, TEMP_TIMER_INTERVAL, NULL);
 	APP_ERROR_CHECK(err_code);
 	NRF_LOG_INFO("Temperature timer 1s started\r\n");
 	
-	err_code = app_timer_start(m_acc_timer_id, ACC_TIMER_INTERVAL, NULL);
+	err_code = app_timer_start(m_acc_timer, ACC_TIMER_INTERVAL, NULL);
 	APP_ERROR_CHECK(err_code);
 	NRF_LOG_INFO("Acceleration timer 10ms started\r\n");
 	
@@ -694,28 +693,20 @@ static void power_manage(void){
 	APP_ERROR_CHECK(err_code);
 }
 
-static void read_acc_data(void){
+static void data_ready_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action){
 	spi_message_t acc_data_msg = {.rw_addr = (READ | MULTI_BYTE | DATA_X0), .len = 6};
 
 	if(spi_transfer_done){
-		spi_acc_data = true;
 		spi_transfer_done = false;
 		current_msg = &acc_data_msg;
 		APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_spi_rx_buffer, current_msg->len+1));
     };
 }
 
-void data_ready_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action){
-	read_acc_data();
-}
-
 static void ext_int_init(void){
-
 	uint32_t err_code;
-
     nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_LOTOHI(true);
-    in_config.pull = NRF_GPIO_PIN_PULLDOWN;
-
+	in_config.pull = NRF_GPIO_PIN_PULLDOWN;
     err_code = nrf_drv_gpiote_in_init(INT1_PIN, &in_config, data_ready_handler);
     APP_ERROR_CHECK(err_code);
 
@@ -726,16 +717,12 @@ static void ext_int_init(void){
  * @brief SPI user event handler.
  * @param event
  */
-
 void spi_event_handler(nrf_drv_spi_evt_t const * p_event){
+	m_acq_data.acc_x = m_spi_rx_buffer[2]<<8 | m_spi_rx_buffer[1];
+	m_acq_data.acc_y = m_spi_rx_buffer[4]<<8 | m_spi_rx_buffer[3];
+	m_acq_data.acc_z = m_spi_rx_buffer[6]<<8 | m_spi_rx_buffer[5];
 
 	spi_transfer_done = true;
-
-	if(spi_acc_data){
-        m_acq_data.acc_x = m_spi_rx_buffer[2]<<8 | m_spi_rx_buffer[1];
-        m_acq_data.acc_y = m_spi_rx_buffer[4]<<8 | m_spi_rx_buffer[3];
-        m_acq_data.acc_z = m_spi_rx_buffer[6]<<8 | m_spi_rx_buffer[5];
-	}
 }
 
 /**
@@ -760,22 +747,21 @@ static void spi_init(void){
 
 static void adxl_init(void){
 
-	spi_message_t init_sequence[5] = {
+	spi_message_t init_sequence[6] = {
 		{.rw_addr = (WRITE | DATA_FORMAT), 	.data[0] = (FULL_RES|RANGE_4G), 	.len = 1},
 		{.rw_addr = (WRITE | BW_RATE), 		.data[0] = (LOW_POWER|RATE_12HZ), 	.len = 1},
 		{.rw_addr = (WRITE | POWER_CTL), 	.data[0] = (I2C_DISABLE|MEASURE), 	.len = 1},
 		{.rw_addr = (WRITE | INT_SOURCE), 	.data[0] = DATA_READY, 				.len = 1},
-		{.rw_addr = (WRITE | INT_ENABLE), 	.data[0] = DATA_READY, 				.len = 1}
+		{.rw_addr = (WRITE | INT_ENABLE), 	.data[0] = DATA_READY, 				.len = 1},
+		{.rw_addr = (READ | MULTI_BYTE | DATA_X0), .len = 6}
 	};
 
-	for(uint8_t i = 0; i < 5; i++){
-
+	for(uint8_t i = 0; i < 6; i++){
 		spi_transfer_done = false;
 		current_msg = init_sequence + i;
 		APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, (uint8_t*)current_msg, current_msg->len+1, m_spi_rx_buffer, current_msg->len+1));
 		while(!spi_transfer_done){};
 	}
-
 	memset(m_spi_rx_buffer, 0, BUFFER_SIZE);
 }
 
@@ -873,15 +859,10 @@ int main(void){
 	NRF_LOG_INFO("Application initialized!\r\n");
 	application_timers_start();
 	advertising_start();
-
 	adxl_init();
-
-	//data read to trigger first interrupt DATA_READY
-	read_acc_data();
 
 	// Enter main loop.
 	while(1){
-
 		if(NRF_LOG_PROCESS() == false){
 			power_manage();
 		}
