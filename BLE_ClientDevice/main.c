@@ -17,9 +17,6 @@
 #include "app_util.h"
 #include "app_error.h"
 
-#include "app_usbd_core.h"
-#include "app_usbd.h"
-#include "app_usbd_string_desc.h"
 #include "app_usbd_cdc_acm.h"
 #include "app_usbd_serial_num.h"
 #include "app_fifo.h"
@@ -29,7 +26,6 @@
 #include "ble_acqs_client.h"
 #include "app_util.h"
 #include "app_timer.h"
-#include "bsp_btn_ble.h"
 #include "fds.h"
 #include "nrf_fstorage.h"
 #include "ble_conn_state.h"
@@ -48,17 +44,9 @@
 #define LED_RGB_GREEN       (BSP_BOARD_LED_2)
 #define LED_RGB_BLUE        (BSP_BOARD_LED_3)
 
-#define BTN_CDC_DATA_SEND       0
-#define BTN_CDC_NOTIFY_SEND     1
-
-#define BTN_CDC_DATA_KEY_RELEASE        (bsp_event_t)(BSP_EVENT_KEY_LAST + 1)
-
 #ifndef USBD_POWER_DETECTION
 #define USBD_POWER_DETECTION true
 #endif
-
-static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst,
-                                    app_usbd_cdc_acm_user_event_t event);
 
 #define CDC_ACM_COMM_INTERFACE  0
 #define CDC_ACM_COMM_EPIN       NRF_DRV_USBD_EPIN2
@@ -67,8 +55,10 @@ static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst,
 #define CDC_ACM_DATA_EPIN       NRF_DRV_USBD_EPIN1
 #define CDC_ACM_DATA_EPOUT      NRF_DRV_USBD_EPOUT1
 
-#define TX_BUF_SIZE             256
-#define READ_SIZE               1
+
+
+static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst,
+                                    app_usbd_cdc_acm_user_event_t event);
 
 BLE_ACQS_DEF(m_acqs); 
 NRF_BLE_GATT_DEF(m_gatt);                                           /**< GATT module instance. */
@@ -88,13 +78,13 @@ APP_USBD_CDC_ACM_GLOBAL_DEF(m_app_cdc_acm,
                             APP_USBD_CDC_COMM_PROTOCOL_AT_V250
 );
 
-static char m_rx_buffer[READ_SIZE];
-static char m_tx_buffer[NRF_DRV_USBD_EPSIZE];
+#define FIFO_SIZE               256
 
-static char         m_tx_fifo_buffer[TX_BUF_SIZE];                  /**< TX buffer. */
-static app_fifo_t   m_tx_fifo;                                      /**< FIFO instance for TX USBD message */
-static bool         m_tx_buffer_free = true;                        /**< Flag to check if FIFO use needed. */
-static char         m_tx_char[1];
+static app_fifo_t   m_fifo;                             // FIFO instance for TX USBD message
+static char         m_fifo_string[NRF_DRV_USBD_EPSIZE]; // FIFO string
+static char         m_fifo_buffer[FIFO_SIZE];           // FIFO TX buffer
+static char         m_tx_char;                          // Transmitted character
+static bool         fifo_empty = true;                // FIFO empty flag
 
 static uint16_t m_conn_handle;                                      /**< Current connection handle. */
 
@@ -116,6 +106,8 @@ static ble_gap_scan_params_t const m_scan_param = {
 };
 
 static void scan_start(void);
+
+static void write_message(const char*, uint32_t);
 
 /**@brief Function for asserts in the SoftDevice.
  *
@@ -170,35 +162,6 @@ static void pm_evt_handler(pm_evt_t const * p_evt) {
     }
 }
 
-/**
- * @brief Function for shutdown events.
- *
- * @param[in]   event       Shutdown type.
- */
-static bool shutdown_handler(nrf_pwr_mgmt_evt_t event) {
-
-    ret_code_t err_code;
-
-    err_code = bsp_indication_set(BSP_INDICATE_IDLE);
-    APP_ERROR_CHECK(err_code);
-
-    switch (event) {
-
-        case NRF_PWR_MGMT_EVT_PREPARE_WAKEUP:
-            // Prepare wakeup buttons.
-            err_code = bsp_btn_ble_sleep_mode_prepare();
-            APP_ERROR_CHECK(err_code);
-            break;
-
-        default:
-            break;
-    }
-
-    return true;
-}
-
-NRF_PWR_MGMT_HANDLER_REGISTER(shutdown_handler, APP_SHUTDOWN_HANDLER_PRIORITY);
-
 /**@brief Function for handling BLE events.
  *
  * @param[in]   p_ble_evt   Bluetooth stack event.
@@ -214,22 +177,12 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context) {
         case BLE_GAP_EVT_CONNECTED:
         {
             NRF_LOG_INFO("Connected to the device.");
-
 #ifdef BOARD_PCA10059
-            uint32_t size = sprintf(m_tx_buffer, "Connected to the device.\r\n");
-            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
-
-            if(m_tx_buffer_free){
-                app_fifo_get(&m_tx_fifo,m_tx_char);
-                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
-                m_tx_buffer_free = false;
-            }
+            uint32_t len = sprintf(m_fifo_string, "Connected to the device.\r\n");
+            write_message(m_fifo_string, len);
 #endif
             // Discover peer's services.
             err_code = ble_db_discovery_start(&m_db_disc, p_ble_evt->evt.gap_evt.conn_handle);
-            APP_ERROR_CHECK(err_code);
-
-            err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
             APP_ERROR_CHECK(err_code);
 
             if (ble_conn_state_central_conn_count() < NRF_SDH_BLE_CENTRAL_LINK_COUNT) {
@@ -242,19 +195,9 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context) {
             NRF_LOG_INFO("Disconnected, reason 0x%x.", p_gap_evt->params.disconnected.reason);
 
 #ifdef BOARD_PCA10059
-            uint32_t size = sprintf(m_tx_buffer, "Disconnected, reason 0x%x.\r\n", p_gap_evt->params.disconnected.reason);
-            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
-
-            if(m_tx_buffer_free){
-                app_fifo_get(&m_tx_fifo,m_tx_char);
-                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
-                m_tx_buffer_free = false;
-            }
+            uint32_t len = sprintf(m_fifo_string, "Disconnected, reason 0x%x.\r\n", p_gap_evt->params.disconnected.reason);
+            write_message(m_fifo_string, len);
 #endif
-
-            err_code = bsp_indication_set(BSP_INDICATE_IDLE);
-            APP_ERROR_CHECK(err_code);
-
             if (ble_conn_state_central_conn_count() < NRF_SDH_BLE_CENTRAL_LINK_COUNT) {
                 scan_start();
             }
@@ -262,18 +205,11 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context) {
 
         case BLE_GAP_EVT_TIMEOUT:
             if (p_gap_evt->params.timeout.src == BLE_GAP_TIMEOUT_SRC_CONN) {
-
+                NRF_LOG_DEBUG("Connection Request timed out.");
 #ifdef BOARD_PCA10059
-                uint32_t size = sprintf(m_tx_buffer, "Connection Request timed out.\r\n");
-                app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
-
-                if(m_tx_buffer_free){
-                    app_fifo_get(&m_tx_fifo,m_tx_char);
-                    app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
-                    m_tx_buffer_free = false;
-                }
+                uint32_t len = sprintf(m_fifo_string, "Connection Request timed out.\r\n");
+                write_message(m_fifo_string, len);
 #endif
-
             }
             break;
 
@@ -389,56 +325,20 @@ static void peer_manager_init(void) {
     APP_ERROR_CHECK(err_code);
 }
 
-/**@brief Function for handling events from the BSP module.
- *
- * @param[in]   event   Event generated by button press.
- */
-void bsp_event_handler(bsp_event_t event) {
-
-    ret_code_t err_code;
-
-    switch (event) {
-
-        case BSP_EVENT_SLEEP:
-            nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
-            break;
-
-        case BSP_EVENT_DISCONNECT:
-            err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
-            if (err_code != NRF_ERROR_INVALID_STATE) {
-                APP_ERROR_CHECK(err_code);
-            }
-            break;
-
-        default:
-            break;
-    }
-}
-
 static void acqs_evt_handler(ble_acqs_t * p_acqs, ble_acqs_evt_t * p_acqs_evt) {
 
     ret_code_t err_code;
+    uint32_t len;
 
     switch (p_acqs_evt->evt_type) {
 
         case BLE_ACQS_EVT_DISCOVERY_COMPLETE:
-        {
-            NRF_LOG_INFO("Aquisition service discovered.");
-
+            NRF_LOG_INFO("Acquisition service discovered.");
 #ifdef BOARD_PCA10059
-            uint32_t size = sprintf(m_tx_buffer, "Aquisition service discovered.\r\n");
-            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
-
-            if(m_tx_buffer_free){
-                app_fifo_get(&m_tx_fifo,m_tx_char);
-                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
-                m_tx_buffer_free = false;
-            }
+            len = sprintf(m_fifo_string, "Acquisition service discovered.\r\n");
+            write_message(m_fifo_string, len);
 #endif
-
-            err_code = ble_acqs_handles_assign(p_acqs,
-                                               p_acqs_evt->conn_handle,
-                                               &p_acqs_evt->params.handles);
+            err_code = ble_acqs_handles_assign(p_acqs, p_acqs_evt->conn_handle, &p_acqs_evt->params.handles);
             APP_ERROR_CHECK(err_code);
 
             //ACQ service discovered. Enable notifications.
@@ -453,90 +353,49 @@ static void acqs_evt_handler(ble_acqs_t * p_acqs, ble_acqs_evt_t * p_acqs_evt) {
 
             err_code = ble_acqs_accz_notif_enable(p_acqs);
             APP_ERROR_CHECK(err_code);
-
-        }   break;
+            break;
 
         case BLE_ACQS_EVT_TEMP_NOTIFICATION:
-        {
             NRF_LOG_INFO("Temperature = "NRF_LOG_FLOAT_MARKER, NRF_LOG_FLOAT(p_acqs_evt->params.temp));
-
 #ifdef BOARD_PCA10059
-            uint32_t size = sprintf(m_tx_buffer, "Temperature = "NRF_LOG_FLOAT_MARKER"\r\n", NRF_LOG_FLOAT(p_acqs_evt->params.temp));
-            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
-
-            if(m_tx_buffer_free){
-                app_fifo_get(&m_tx_fifo,m_tx_char);
-                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
-                m_tx_buffer_free = false;
-            }
+            len = sprintf(m_fifo_string, "Temperature = "NRF_LOG_FLOAT_MARKER"\r\n", NRF_LOG_FLOAT(p_acqs_evt->params.temp));
+            write_message(m_fifo_string, len);
 #endif
-        }   break;
+            break;
 
         case BLE_ACQS_EVT_ACCX_NOTIFICATION:
-        {
             NRF_LOG_INFO("Acceleration X = %d", p_acqs_evt->params.acc);
             
 #ifdef BOARD_PCA10059
-            uint32_t size = sprintf(m_tx_buffer, "Acceleration X = %d\r\n", p_acqs_evt->params.acc);
-            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
-
-            if(m_tx_buffer_free){
-                app_fifo_get(&m_tx_fifo,m_tx_char);
-                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
-                m_tx_buffer_free = false;
-            }
+            len = sprintf(m_fifo_string, "Acceleration X = %d\r\n", p_acqs_evt->params.acc);
+            write_message(m_fifo_string, len);
 #endif
-        }   break;
+            break;
 
         case BLE_ACQS_EVT_ACCY_NOTIFICATION:
-        {
             NRF_LOG_INFO("Acceleration Y = %d", p_acqs_evt->params.acc);
-            
 #ifdef BOARD_PCA10059
-            uint32_t size = sprintf(m_tx_buffer, "Acceleration Y = %d\r\n", p_acqs_evt->params.acc);
-            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
-
-            if(m_tx_buffer_free){
-                app_fifo_get(&m_tx_fifo,m_tx_char);
-                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
-                m_tx_buffer_free = false;
-            }
+            len = sprintf(m_fifo_string, "Acceleration Y = %d\r\n", p_acqs_evt->params.acc);
+            write_message(m_fifo_string, len);
 #endif
-        }   break;
+            break;
 
         case BLE_ACQS_EVT_ACCZ_NOTIFICATION:
-        {
             NRF_LOG_INFO("Acceleration Z = %d", p_acqs_evt->params.acc);
-            
 #ifdef BOARD_PCA10059
-            uint32_t size = sprintf(m_tx_buffer, "Acceleration Z = %d\r\n", p_acqs_evt->params.acc);
-            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
-
-            if(m_tx_buffer_free){
-                app_fifo_get(&m_tx_fifo,m_tx_char);
-                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
-                m_tx_buffer_free = false;
-            }
+            len = sprintf(m_fifo_string, "Acceleration Z = %d\r\n", p_acqs_evt->params.acc);
+            write_message(m_fifo_string, len);
 #endif
-        }   break;
+            break;
 
         case BLE_ACQS_EVT_DISCONNECTED:
-        {
             NRF_LOG_INFO("Disconnected");
-
 #ifdef BOARD_PCA10059
-            uint32_t size = sprintf(m_tx_buffer, "Disconnected\r\n");
-            app_fifo_write(&m_tx_fifo, m_tx_buffer, &size);
-
-            if(m_tx_buffer_free){
-                app_fifo_get(&m_tx_fifo,m_tx_char);
-                app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
-                m_tx_buffer_free = false;
-            }
+            len = sprintf(m_fifo_string, "Disconnected\r\n");
+            write_message(m_fifo_string, len);
 #endif
             scan_start();
-        }   break;
-            
+            break;
 
         default:
             break;
@@ -582,23 +441,6 @@ static void scan_start(void) {
 
     err_code = nrf_ble_scan_start(&m_scan);
     APP_ERROR_CHECK(err_code);
-
-    err_code = bsp_indication_set(BSP_INDICATE_SCANNING);
-    APP_ERROR_CHECK(err_code);
-}
-
-/**@brief Function for initializing buttons and leds.
- */
-static void buttons_leds_init() {
-
-    ret_code_t  err_code;
-    bsp_event_t startup_event;
-
-    err_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, bsp_event_handler);
-    APP_ERROR_CHECK(err_code);
-
-    err_code = bsp_btn_ble_init(NULL, &startup_event);
-    APP_ERROR_CHECK(err_code);
 }
 
 /**@brief Function for initializing the nrf log module.
@@ -625,18 +467,12 @@ static void gatt_evt_handler(nrf_ble_gatt_t * p_gatt, nrf_ble_gatt_evt_t const *
 
     switch (p_evt->evt_id) {
         case NRF_BLE_GATT_EVT_ATT_MTU_UPDATED:
-        {
-            NRF_LOG_INFO("GATT ATT MTU on connection 0x%x changed to %d.",
-                         p_evt->conn_handle,
-                         p_evt->params.att_mtu_effective);
-        }   break;
+            NRF_LOG_INFO("GATT ATT MTU on connection 0x%x changed to %d.", p_evt->conn_handle, p_evt->params.att_mtu_effective);
+            break;
 
         case NRF_BLE_GATT_EVT_DATA_LENGTH_UPDATED:
-        {
-            NRF_LOG_INFO("Data length for connection 0x%x updated to %d.",
-                         p_evt->conn_handle,
-                         p_evt->params.data_length);
-        }   break;
+            NRF_LOG_INFO("Data length for connection 0x%x updated to %d.", p_evt->conn_handle, p_evt->params.data_length);
+            break;
 
         default:
             break;
@@ -645,22 +481,16 @@ static void gatt_evt_handler(nrf_ble_gatt_t * p_gatt, nrf_ble_gatt_evt_t const *
 
 static void scan_evt_handler(scan_evt_t const * p_scan_evt) {
 
-    ret_code_t err_code;
+    uint32_t err_code;
     switch(p_scan_evt->scan_evt_id) {
 
         case NRF_BLE_SCAN_EVT_CONNECTING_ERROR:
-        {
             err_code = p_scan_evt->params.connecting_err.err_code;
             APP_ERROR_CHECK(err_code);
-        }   break;
+            break;
 
         case NRF_BLE_SCAN_EVT_SCAN_TIMEOUT:
-        {
-            NRF_LOG_INFO("Scan timed out.");
             scan_start();
-        }   break;
-
-        case NRF_BLE_SCAN_EVT_FILTER_MATCH:
             break;
 
         default:
@@ -683,7 +513,6 @@ static void gatt_init(void) {
     ret_code_t err_code = nrf_ble_gatt_init(&m_gatt, gatt_evt_handler);
     APP_ERROR_CHECK(err_code);
 }
-
 
 /**@brief Function for initialization scanning and setting filters.
  */
@@ -729,53 +558,35 @@ static void idle_state_handle(void) {
  * */
 static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst,
                                     app_usbd_cdc_acm_user_event_t event) {
-
-    app_usbd_cdc_acm_t const * p_cdc_acm = app_usbd_cdc_acm_class_get(p_inst);
+    uint32_t err_code;
+    char rx_buffer;
 
     switch (event) {
-
         case APP_USBD_CDC_ACM_USER_EVT_PORT_OPEN:
-        {
-
             /*Setup first transfer*/
-            ret_code_t ret = app_usbd_cdc_acm_read(&m_app_cdc_acm,
-                                                   m_rx_buffer,
-                                                   READ_SIZE);
-            UNUSED_VARIABLE(ret);
-        }   break;
-
-        case APP_USBD_CDC_ACM_USER_EVT_PORT_CLOSE:
+            app_usbd_cdc_acm_read(&m_app_cdc_acm, &rx_buffer, 1);
             break;
 
         case APP_USBD_CDC_ACM_USER_EVT_TX_DONE:
-
-            if(!m_tx_buffer_free){
-                uint32_t err = app_fifo_get(&m_tx_fifo, m_tx_char);
-                if(err == NRF_ERROR_NOT_FOUND) {
-                    m_tx_buffer_free = true;
+            if(!fifo_empty){
+                err_code = app_fifo_get(&m_fifo, &m_tx_char);
+                if(err_code == NRF_ERROR_NOT_FOUND) {
+                    fifo_empty = true;
                 }
                 else {
-                    app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_char, 1);
-                    m_tx_buffer_free = false;
+                    app_usbd_cdc_acm_write(&m_app_cdc_acm, &m_tx_char, 1);
+                    fifo_empty = false;
                 }
             }
             break;
 
         case APP_USBD_CDC_ACM_USER_EVT_RX_DONE:
-        {
-            ret_code_t ret;
-            NRF_LOG_INFO("Bytes waiting: %d", app_usbd_cdc_acm_bytes_stored(p_cdc_acm));
             do {
-                /*Get amount of data transfered*/
-                size_t size = app_usbd_cdc_acm_rx_size(p_cdc_acm);
-                NRF_LOG_INFO("RX: size: %lu char: %c", size, m_rx_buffer[0]);
-
                 /* Fetch data until internal buffer is empty */
-                ret = app_usbd_cdc_acm_read(&m_app_cdc_acm,
-                                            m_rx_buffer,
-                                            READ_SIZE);
-            } while (ret == NRF_SUCCESS);
-        }   break;
+                err_code = app_usbd_cdc_acm_read(&m_app_cdc_acm, &rx_buffer, 1);
+            } 
+            while (err_code == NRF_SUCCESS);
+            break;
 
         default:
             break;
@@ -784,44 +595,34 @@ static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst,
 
 static void usbd_user_ev_handler(app_usbd_event_type_t event) {
     switch (event) {
-
-        case APP_USBD_EVT_DRV_SUSPEND:
-            bsp_board_led_off(LED_RGB_BLUE);
-            break;
-
-        case APP_USBD_EVT_DRV_RESUME:
-            bsp_board_led_on(LED_RGB_BLUE);
-            break;
-
-        case APP_USBD_EVT_STARTED:
-            break;
-
         case APP_USBD_EVT_STOPPED:
             app_usbd_disable();
-            bsp_board_leds_off();
             break;
 
         case APP_USBD_EVT_POWER_DETECTED:
-            NRF_LOG_INFO("USB power detected");
-
-            if (!nrf_drv_usbd_is_enabled()) {
+            if (!nrf_drv_usbd_is_enabled())
                 app_usbd_enable();
-            }
             break;
 
         case APP_USBD_EVT_POWER_REMOVED:
-            NRF_LOG_INFO("USB power removed");
-            bsp_board_led_on(LED_RGB_RED);
             app_usbd_stop();
             break;
 
         case APP_USBD_EVT_POWER_READY:
-            NRF_LOG_INFO("USB ready");
             app_usbd_start();
             break;
 
         default:
             break;
+    }
+}
+
+static void write_message(const char* message, uint32_t len){
+    app_fifo_write(&m_fifo, message, &len);
+    if(fifo_empty){
+        app_fifo_get(&m_fifo, &m_tx_char);
+        app_usbd_cdc_acm_write(&m_app_cdc_acm, &m_tx_char, 1);
+        fifo_empty = false;
     }
 }
 
@@ -834,14 +635,13 @@ int main(void) {
     nrf_drv_clock_init();
     log_init();
     timer_init();
-    buttons_leds_init();
 
     app_usbd_serial_num_generate();
     app_usbd_init(&usbd_config);
     app_usbd_class_inst_t const* class_cdc_acm = app_usbd_cdc_acm_class_inst_get(&m_app_cdc_acm);
     app_usbd_class_append(class_cdc_acm);
 
-    app_fifo_init(&m_tx_fifo, m_tx_fifo_buffer, TX_BUF_SIZE);
+    app_fifo_init(&m_fifo, m_fifo_buffer, FIFO_SIZE);
     
     power_management_init();
     ble_stack_init();
@@ -861,8 +661,8 @@ int main(void) {
 
     scan_start();
 
-    while (true) {
-        while (app_usbd_event_queue_process()) {}
+    while(true){
+        while(app_usbd_event_queue_process()){}
         idle_state_handle();
     }
 }
