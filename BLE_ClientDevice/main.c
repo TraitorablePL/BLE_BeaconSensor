@@ -78,7 +78,7 @@ APP_USBD_CDC_ACM_GLOBAL_DEF(m_app_cdc_acm,
                             APP_USBD_CDC_COMM_PROTOCOL_AT_V250
 );
 
-#define FIFO_SIZE               256
+#define FIFO_SIZE               512
 
 static app_fifo_t   m_fifo;                             // FIFO instance for TX USBD message
 static char         m_fifo_string[NRF_DRV_USBD_EPSIZE]; // FIFO string
@@ -93,14 +93,9 @@ static char const m_target_periph_name[] = "ACQ Beacon";            /**< Target 
 /**< Scan parameters requested for scanning and connection. */
 static ble_gap_scan_params_t const m_scan_param = {
     .active        = 0x01,
-#if (NRF_SD_BLE_API_VERSION > 7)
-    .interval_us   = NRF_BLE_SCAN_SCAN_INTERVAL * UNIT_0_625_MS,
-    .window_us     = NRF_BLE_SCAN_SCAN_WINDOW * UNIT_0_625_MS,
-#else
     .interval      = NRF_BLE_SCAN_SCAN_INTERVAL,
     .window        = NRF_BLE_SCAN_SCAN_WINDOW,
-#endif // (NRF_SD_BLE_API_VERSION > 7)
-    .filter_policy = BLE_GAP_SCAN_FP_ACCEPT_ALL,
+    .filter_policy = BLE_GAP_SCAN_FP_ACCEPT_ALL, //Accept all advertising packets except directed advertising packets
     .timeout       = 3000,
     .scan_phys     = BLE_GAP_PHY_1MBPS,
 };
@@ -170,6 +165,7 @@ static void pm_evt_handler(pm_evt_t const * p_evt) {
 static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context) {
 
     ret_code_t            err_code;
+    uint32_t len;
     ble_gap_evt_t const * p_gap_evt = &p_ble_evt->evt.gap_evt;
 
     switch (p_ble_evt->header.evt_id) {
@@ -178,16 +174,12 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context) {
         {
             NRF_LOG_INFO("Connected to the device.");
 #ifdef BOARD_PCA10059
-            uint32_t len = sprintf(m_fifo_string, "Connected to the device.\r\n");
+            len = sprintf(m_fifo_string, "Connected to the device.\r\n");
             write_message(m_fifo_string, len);
 #endif
             // Discover peer's services.
             err_code = ble_db_discovery_start(&m_db_disc, p_ble_evt->evt.gap_evt.conn_handle);
             APP_ERROR_CHECK(err_code);
-
-            if (ble_conn_state_central_conn_count() < NRF_SDH_BLE_CENTRAL_LINK_COUNT) {
-                scan_start();
-            }
         } break;
 
         case BLE_GAP_EVT_DISCONNECTED:
@@ -195,7 +187,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context) {
             NRF_LOG_INFO("Disconnected, reason 0x%x.", p_gap_evt->params.disconnected.reason);
 
 #ifdef BOARD_PCA10059
-            uint32_t len = sprintf(m_fifo_string, "Disconnected, reason 0x%x.\r\n", p_gap_evt->params.disconnected.reason);
+            len = sprintf(m_fifo_string, "Disconnected, reason 0x%x.\r\n", p_gap_evt->params.disconnected.reason);
             write_message(m_fifo_string, len);
 #endif
             if (ble_conn_state_central_conn_count() < NRF_SDH_BLE_CENTRAL_LINK_COUNT) {
@@ -203,38 +195,33 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context) {
             }
         } break;
 
-        case BLE_GAP_EVT_TIMEOUT:
-            if (p_gap_evt->params.timeout.src == BLE_GAP_TIMEOUT_SRC_CONN) {
-                NRF_LOG_DEBUG("Connection Request timed out.");
-#ifdef BOARD_PCA10059
-                uint32_t len = sprintf(m_fifo_string, "Connection Request timed out.\r\n");
-                write_message(m_fifo_string, len);
-#endif
-            }
-            break;
-
         case BLE_GAP_EVT_CONN_PARAM_UPDATE_REQUEST:
-            // Accepting parameters requested by peer.
+#ifdef BOARD_PCA10059
+            len = sprintf(m_fifo_string, "Param update request.\r\n");
+            write_message(m_fifo_string, len);
+#endif
             err_code = sd_ble_gap_conn_param_update(p_gap_evt->conn_handle,
                                                     &p_gap_evt->params.conn_param_update_request.conn_params);
             APP_ERROR_CHECK(err_code);
             break;
 
-        case BLE_GAP_EVT_PHY_UPDATE_REQUEST:
-        {
-            NRF_LOG_DEBUG("PHY update request.");
-            ble_gap_phys_t const phys =
-            {
-                .rx_phys = BLE_GAP_PHY_AUTO,
-                .tx_phys = BLE_GAP_PHY_AUTO,
-            };
-            err_code = sd_ble_gap_phy_update(p_ble_evt->evt.gap_evt.conn_handle, &phys);
-            APP_ERROR_CHECK(err_code);
-        } break;
+        case BLE_GAP_EVT_TIMEOUT:
+            if (p_gap_evt->params.timeout.src == BLE_GAP_TIMEOUT_SRC_CONN) {
+                NRF_LOG_DEBUG("Connection Request timed out.");
+#ifdef BOARD_PCA10059
+                len = sprintf(m_fifo_string, "Connection Request timed out.\r\n");
+                write_message(m_fifo_string, len);
+#endif
+            }
+            break;
 
         case BLE_GATTC_EVT_TIMEOUT:
             // Disconnect on GATT Client timeout event.
             NRF_LOG_DEBUG("GATT Client Timeout.");
+#ifdef BOARD_PCA10059
+            len = sprintf(m_fifo_string, "GATT Client Timeout.\r\n");
+            write_message(m_fifo_string, len);
+#endif
             err_code = sd_ble_gap_disconnect(p_ble_evt->evt.gattc_evt.conn_handle,
                                              BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
             APP_ERROR_CHECK(err_code);
@@ -242,23 +229,14 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context) {
 
         case BLE_GATTS_EVT_TIMEOUT:
             // Disconnect on GATT Server timeout event.
-            NRF_LOG_DEBUG("GATT Server Timeout.");
+#ifdef BOARD_PCA10059
+            len = sprintf(m_fifo_string, "GATT Server Timeout.\r\n");
+            write_message(m_fifo_string, len);
+#endif
+            //NRF_LOG_DEBUG("GATT Server Timeout.");
             err_code = sd_ble_gap_disconnect(p_ble_evt->evt.gatts_evt.conn_handle,
                                              BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
             APP_ERROR_CHECK(err_code);
-            break;
-    
-        case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
-            NRF_LOG_DEBUG("BLE_GAP_EVT_SEC_PARAMS_REQUEST");
-            break;
-
-         case BLE_GAP_EVT_AUTH_STATUS:
-             NRF_LOG_INFO("BLE_GAP_EVT_AUTH_STATUS: status=0x%x bond=0x%x lv4: %d kdist_own:0x%x kdist_peer:0x%x",
-                          p_ble_evt->evt.gap_evt.params.auth_status.auth_status,
-                          p_ble_evt->evt.gap_evt.params.auth_status.bonded,
-                          p_ble_evt->evt.gap_evt.params.auth_status.sm1_levels.lv4,
-                          *((uint8_t *)&p_ble_evt->evt.gap_evt.params.auth_status.kdist_own),
-                          *((uint8_t *)&p_ble_evt->evt.gap_evt.params.auth_status.kdist_peer));
             break;
 
         default:
@@ -342,23 +320,20 @@ static void acqs_evt_handler(ble_acqs_t * p_acqs, ble_acqs_evt_t * p_acqs_evt) {
             APP_ERROR_CHECK(err_code);
 
             //ACQ service discovered. Enable notifications.
-            err_code = ble_acqs_temp_notif_enable(p_acqs);
-            APP_ERROR_CHECK(err_code);
-
             err_code = ble_acqs_accx_notif_enable(p_acqs);
             APP_ERROR_CHECK(err_code);
-
             err_code = ble_acqs_accy_notif_enable(p_acqs);
             APP_ERROR_CHECK(err_code);
-
             err_code = ble_acqs_accz_notif_enable(p_acqs);
+            APP_ERROR_CHECK(err_code);
+            err_code = ble_acqs_temp_notif_enable(p_acqs);
             APP_ERROR_CHECK(err_code);
             break;
 
         case BLE_ACQS_EVT_TEMP_NOTIFICATION:
             NRF_LOG_INFO("Temperature = "NRF_LOG_FLOAT_MARKER, NRF_LOG_FLOAT(p_acqs_evt->params.temp));
 #ifdef BOARD_PCA10059
-            len = sprintf(m_fifo_string, "Temperature = "NRF_LOG_FLOAT_MARKER"\r\n", NRF_LOG_FLOAT(p_acqs_evt->params.temp));
+            len = sprintf(m_fifo_string, "T:"NRF_LOG_FLOAT_MARKER"\r\n", NRF_LOG_FLOAT(p_acqs_evt->params.temp));
             write_message(m_fifo_string, len);
 #endif
             break;
@@ -367,7 +342,7 @@ static void acqs_evt_handler(ble_acqs_t * p_acqs, ble_acqs_evt_t * p_acqs_evt) {
             NRF_LOG_INFO("Acceleration X = %d", p_acqs_evt->params.acc);
             
 #ifdef BOARD_PCA10059
-            len = sprintf(m_fifo_string, "Acceleration X = %d\r\n", p_acqs_evt->params.acc);
+            len = sprintf(m_fifo_string, "X:%d\r\n", p_acqs_evt->params.acc);
             write_message(m_fifo_string, len);
 #endif
             break;
@@ -375,7 +350,7 @@ static void acqs_evt_handler(ble_acqs_t * p_acqs, ble_acqs_evt_t * p_acqs_evt) {
         case BLE_ACQS_EVT_ACCY_NOTIFICATION:
             NRF_LOG_INFO("Acceleration Y = %d", p_acqs_evt->params.acc);
 #ifdef BOARD_PCA10059
-            len = sprintf(m_fifo_string, "Acceleration Y = %d\r\n", p_acqs_evt->params.acc);
+            len = sprintf(m_fifo_string, "Y:%d\r\n", p_acqs_evt->params.acc);
             write_message(m_fifo_string, len);
 #endif
             break;
@@ -383,7 +358,7 @@ static void acqs_evt_handler(ble_acqs_t * p_acqs, ble_acqs_evt_t * p_acqs_evt) {
         case BLE_ACQS_EVT_ACCZ_NOTIFICATION:
             NRF_LOG_INFO("Acceleration Z = %d", p_acqs_evt->params.acc);
 #ifdef BOARD_PCA10059
-            len = sprintf(m_fifo_string, "Acceleration Z = %d\r\n", p_acqs_evt->params.acc);
+            len = sprintf(m_fifo_string, "Z:%d\r\n", p_acqs_evt->params.acc);
             write_message(m_fifo_string, len);
 #endif
             break;
@@ -537,7 +512,7 @@ static void scan_init(void) {
     APP_ERROR_CHECK(err_code);
 
     err_code = nrf_ble_scan_filters_enable(&m_scan,
-                                           NRF_BLE_SCAN_ALL_FILTER,
+                                           NRF_BLE_SCAN_NAME_FILTER,
                                            false);
     APP_ERROR_CHECK(err_code);
 
