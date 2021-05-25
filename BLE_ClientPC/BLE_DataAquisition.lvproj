@@ -17,6 +17,7 @@
 		<Item Name="BLE_Message_Info.ctl" Type="VI" URL="../BLE_Message_Info.ctl"/>
 		<Item Name="BLE_Response.ctl" Type="VI" URL="../BLE_Response.ctl"/>
 		<Item Name="BLE_Response_Info.ctl" Type="VI" URL="../BLE_Response_Info.ctl"/>
+		<Item Name="Main_Data.ctl" Type="VI" URL="../Main_Data.ctl"/>
 		<Item Name="Dependencies" Type="Dependencies">
 			<Item Name="mscorlib" Type="VI" URL="mscorlib">
 				<Property Name="NI.PreserveRelativePath" Type="Bool">true</Property>
