@@ -12,6 +12,7 @@
 		<Property Name="specify.custom.address" Type="Bool">false</Property>
 		<Item Name="BLE.lvlib" Type="Library" URL="../BLE.lvlib"/>
 		<Item Name="BLE_Data.ctl" Type="VI" URL="../BLE_Data.ctl"/>
+		<Item Name="BLE_Data_TargetDevice.ctl" Type="VI" URL="../BLE_Data_TargetDevice.ctl"/>
 		<Item Name="BLE_DataAquisition.vi" Type="VI" URL="../BLE_DataAquisition.vi"/>
 		<Item Name="BLE_Message.ctl" Type="VI" URL="../BLE_Message.ctl"/>
 		<Item Name="BLE_Message_Info.ctl" Type="VI" URL="../BLE_Message_Info.ctl"/>
