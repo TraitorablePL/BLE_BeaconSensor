@@ -11,6 +11,7 @@
 		<Property Name="server.vi.propertiesEnabled" Type="Bool">true</Property>
 		<Property Name="specify.custom.address" Type="Bool">false</Property>
 		<Item Name="BLE.lvlib" Type="Library" URL="../BLE.lvlib"/>
+		<Item Name="BLE_Action.ctl" Type="VI" URL="../BLE_Action.ctl"/>
 		<Item Name="BLE_Data.ctl" Type="VI" URL="../BLE_Data.ctl"/>
 		<Item Name="BLE_Data_TargetDevice.ctl" Type="VI" URL="../BLE_Data_TargetDevice.ctl"/>
 		<Item Name="BLE_DataAquisition.vi" Type="VI" URL="../BLE_DataAquisition.vi"/>
@@ -18,6 +19,7 @@
 		<Item Name="BLE_Message_Info.ctl" Type="VI" URL="../BLE_Message_Info.ctl"/>
 		<Item Name="BLE_Response.ctl" Type="VI" URL="../BLE_Response.ctl"/>
 		<Item Name="BLE_Response_Info.ctl" Type="VI" URL="../BLE_Response_Info.ctl"/>
+		<Item Name="LittleEndianFloat_to_Float.vi" Type="VI" URL="../LittleEndianFloat_to_Float.vi"/>
 		<Item Name="Main_Data.ctl" Type="VI" URL="../Main_Data.ctl"/>
 		<Item Name="Dependencies" Type="Dependencies">
 			<Item Name="mscorlib" Type="VI" URL="mscorlib">
