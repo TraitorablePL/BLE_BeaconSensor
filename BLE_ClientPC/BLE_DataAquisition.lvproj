@@ -15,11 +15,12 @@
 		<Item Name="BLE_Data.ctl" Type="VI" URL="../BLE_Data.ctl"/>
 		<Item Name="BLE_Data_TargetDevice.ctl" Type="VI" URL="../BLE_Data_TargetDevice.ctl"/>
 		<Item Name="BLE_DataAquisition.vi" Type="VI" URL="../BLE_DataAquisition.vi"/>
-		<Item Name="BLE_Message.ctl" Type="VI" URL="../BLE_Message.ctl"/>
-		<Item Name="BLE_Message_Info.ctl" Type="VI" URL="../BLE_Message_Info.ctl"/>
-		<Item Name="BLE_Response.ctl" Type="VI" URL="../BLE_Response.ctl"/>
-		<Item Name="BLE_Response_Info.ctl" Type="VI" URL="../BLE_Response_Info.ctl"/>
-		<Item Name="LittleEndianFloat_to_Float.vi" Type="VI" URL="../LittleEndianFloat_to_Float.vi"/>
+		<Item Name="BLE_Request.ctl" Type="VI" URL="../BLE_Request.ctl"/>
+		<Item Name="BLE_Request_Command.ctl" Type="VI" URL="../BLE_Request_Command.ctl"/>
+		<Item Name="Controller_Request.ctl" Type="VI" URL="../Controller_Request.ctl"/>
+		<Item Name="Controller_Request_Command.ctl" Type="VI" URL="../Controller_Request_Command.ctl"/>
+		<Item Name="Controller_Response.ctl" Type="VI" URL="../Controller_Response.ctl"/>
+		<Item Name="Controller_Response_Command.ctl" Type="VI" URL="../Controller_Response_Command.ctl"/>
 		<Item Name="Main_Data.ctl" Type="VI" URL="../Main_Data.ctl"/>
 		<Item Name="Dependencies" Type="Dependencies">
 			<Item Name="mscorlib" Type="VI" URL="mscorlib">
