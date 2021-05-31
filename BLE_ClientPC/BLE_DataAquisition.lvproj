@@ -18,14 +18,18 @@
 		<Item Name="BLE_DataAquisition.vi" Type="VI" URL="../BLE_DataAquisition.vi"/>
 		<Item Name="BLE_Request.ctl" Type="VI" URL="../BLE_Request.ctl"/>
 		<Item Name="BLE_Request_Command.ctl" Type="VI" URL="../BLE_Request_Command.ctl"/>
+		<Item Name="BLE_Thread.vi" Type="VI" URL="../BLE_Thread.vi"/>
 		<Item Name="Controller_Request.ctl" Type="VI" URL="../Controller_Request.ctl"/>
 		<Item Name="Controller_Request_Command.ctl" Type="VI" URL="../Controller_Request_Command.ctl"/>
 		<Item Name="Controller_Response.ctl" Type="VI" URL="../Controller_Response.ctl"/>
 		<Item Name="Controller_Response_Command.ctl" Type="VI" URL="../Controller_Response_Command.ctl"/>
+		<Item Name="Controller_Thread.vi" Type="VI" URL="../Controller_Thread.vi"/>
+		<Item Name="Launcher.vi" Type="VI" URL="../Launcher.vi"/>
 		<Item Name="LittleEndianToFloat.vi" Type="VI" URL="../LittleEndianToFloat.vi"/>
 		<Item Name="LittleEndianToInt16.vi" Type="VI" URL="../LittleEndianToInt16.vi"/>
 		<Item Name="Main_Data.ctl" Type="VI" URL="../Main_Data.ctl"/>
 		<Item Name="Main_Data_ACQ.ctl" Type="VI" URL="../Main_Data_ACQ.ctl"/>
+		<Item Name="UI_Thread.vi" Type="VI" URL="../UI_Thread.vi"/>
 		<Item Name="Dependencies" Type="Dependencies">
 			<Item Name="mscorlib" Type="VI" URL="mscorlib">
 				<Property Name="NI.PreserveRelativePath" Type="Bool">true</Property>
